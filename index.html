@@ -159,6 +159,54 @@
     </div>
   </template>
 
+  <section style="margin-top:3rem;font-size:.82rem;color:var(--pico-muted-color);line-height:1.8">
+    <h2 style="font-size:1rem;margin-bottom:.75rem">What is a CS2 masked inspect URL?</h2>
+    <p>
+      A <strong>masked inspect URL</strong> (also called a <em>masked inspect link</em>) is a self-contained
+      CS2 item preview link that encodes all item data — <strong>float value</strong>, <strong>paint seed</strong>,
+      <strong>paint index</strong>, <strong>def index</strong>, sticker IDs and wear, keychain IDs — directly
+      inside the URL as a binary protobuf payload. Unlike classic <code>S…A…D…</code> Steam inspect links,
+      masked links do not require a live connection to the Steam Game Coordinator to decode and can be parsed
+      completely offline.
+    </p>
+
+    <h2 style="font-size:1rem;margin:1.25rem 0 .75rem">How to decode a masked inspect link</h2>
+    <p>
+      Paste any of the following formats into the input above and press <kbd>Decode</kbd> (or just paste —
+      the decoder runs automatically):
+    </p>
+    <ul>
+      <li><strong>Masked</strong> — <code>csgo_econ_action_preview%20&lt;hex&gt;</code> — pure hex protobuf blob, fully offline decodable.</li>
+      <li><strong>Hybrid</strong> — <code>S…A…D&lt;hex&gt;</code> — classic prefix with hex proto after the D parameter.</li>
+      <li><strong>steam://</strong> — full Steam browser protocol inspect link in any of the above formats.</li>
+    </ul>
+    <p>
+      The decoder extracts the <strong>skin float</strong> (paint wear, 0–1), pattern (paint seed 0–999),
+      weapon definition index, paint index, per-slot <strong>sticker wear</strong>, and keychain details,
+      then renders the equivalent <strong>!gen code</strong> for use in CS2 inspect bots.
+    </p>
+
+    <h2 style="font-size:1rem;margin:1.25rem 0 .75rem">Inspect link format internals</h2>
+    <p>
+      The payload is a protobuf-encoded <code>ItemPreviewData</code> message optionally XOR-encrypted with
+      a single key byte. A 4-byte CRC32 checksum is appended for integrity verification. The
+      <strong>paint wear float</strong> is stored as a reinterpreted IEEE 754 uint32. This format was
+      introduced by Valve to allow skin marketplaces and trading sites to embed full item metadata in a
+      single shareable link without backend lookups.
+    </p>
+
+    <h2 style="font-size:1rem;margin:1.25rem 0 .75rem">Gen code format</h2>
+    <p>
+      A <strong>gen code</strong> (<code>!gen</code>) is a space-separated string used by CS2 inspect bots:
+    </p>
+    <pre style="font-size:.78rem"><code>!gen {defindex} {paintindex} {paintseed} {paintwear} [{s0_id} {s0_wear} … {s4_id} {s4_wear}]</code></pre>
+    <p>
+      Sticker slots are always padded to 5 pairs (<code>0 0</code> for empty slots). Keychains follow after
+      the sticker block when present. The decoder on this page generates the correct gen code from any
+      supported inspect link format.
+    </p>
+  </section>
+
   <footer>
     <small>
       <a href="https://github.com/vlydev" target="_blank" rel="noopener">github.com/vlydev</a>
