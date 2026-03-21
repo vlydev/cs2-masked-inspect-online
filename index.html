@@ -131,19 +131,19 @@
             <tr><th>type</th>       <td x-html="linkTypeBadge()"></td></tr>
             <tr><th>quality</th>    <td x-html="qualityHtml(result.quality)"></td></tr>
             <tr><th>rarity</th>     <td x-html="rarityHtml(result.rarity)"></td></tr>
-            <template x-if="result.paintIndex && skinInfo()">
+            <template x-if="resolvedItem()">
               <tr>
-                <th>skin</th>
+                <th x-text="isDirectItem() ? directItemLabel() : 'skin'"></th>
                 <td>
                   <div class="item-cell">
-                    <template x-if="skinInfo().image">
-                      <img :src="skinInfo().image" :alt="skinInfo().name" loading="lazy"
-                           @mouseenter="showImgPopup($event, skinInfo())"
+                    <template x-if="resolvedItem().image">
+                      <img :src="resolvedItem().image" :alt="resolvedItem().name" loading="lazy"
+                           @mouseenter="showImgPopup($event, resolvedItem())"
                            @mouseleave="hideImgPopup()" />
                     </template>
                     <div>
-                      <div class="item-name" x-text="skinInfo().name"></div>
-                      <div class="item-id"   x-text="'paintIndex #' + result.paintIndex"></div>
+                      <div class="item-name" x-text="resolvedItem().name"></div>
+                      <div class="item-id" x-text="isDirectItem() ? '#' + directItemId() : 'paintIndex #' + result.paintIndex"></div>
                     </div>
                   </div>
                 </td>
@@ -176,7 +176,7 @@
       </figure>
 
       <!-- Stickers -->
-      <template x-if="result.stickers && result.stickers.length">
+      <template x-if="!isDirectItem() && result.stickers && result.stickers.length">
         <div>
           <h6 style="margin-bottom:.4rem">Stickers</h6>
           <figure>
@@ -210,7 +210,7 @@
       </template>
 
       <!-- Keychains -->
-      <template x-if="result.keychains && result.keychains.length">
+      <template x-if="!isDirectItem() && result.keychains && result.keychains.length">
         <div>
           <h6 style="margin-bottom:.4rem">Keychains</h6>
           <figure>
@@ -419,6 +419,49 @@
           this._lsSet('cs2_keychains_v1', map);
         } catch { /* silently ignore */ }
         this._keychainLoading = false;
+      },
+
+      isDirectItem() {
+        if (!this.result) return false;
+        if (this.result.paintIndex || this.result.paintSeed) return false;
+        const st = this.result.stickers  ?? [];
+        const kc = this.result.keychains ?? [];
+        return st.length === 1 || kc.length === 1;
+      },
+
+      directItemLabel() {
+        const st = this.result.stickers  ?? [];
+        const kc = this.result.keychains ?? [];
+        if (kc.length === 1) return 'keychain';
+        // distinguish sticker vs patch by checking the cache
+        const s  = st[0];
+        const id = Number(s.id ?? s.stickerId);
+        // patches have ids in patches.json — they're already merged in stickerCache,
+        // but we can't distinguish at runtime without extra metadata, so fall back to 'sticker/patch'
+        return 'sticker / patch';
+      },
+
+      directItemId() {
+        const st = this.result.stickers  ?? [];
+        const kc = this.result.keychains ?? [];
+        const item = kc.length === 1 ? kc[0] : st[0];
+        return item?.id ?? item?.stickerId ?? '—';
+      },
+
+      resolvedItem() {
+        if (!this.result) return null;
+        if (this.isDirectItem()) {
+          const st = this.result.stickers  ?? [];
+          const kc = this.result.keychains ?? [];
+          if (kc.length === 1) {
+            const k = kc[0];
+            return this._keychainCache ? (this.keychainInfo(k.id ?? k.stickerId) ?? null) : null;
+          }
+          const s = st[0];
+          return this._stickerCache ? (this.stickerInfo(s.id ?? s.stickerId) ?? null) : null;
+        }
+        if (!this.result.paintIndex || !this._skinCache) return null;
+        return this._skinCache.get(Number(this.result.paintIndex)) ?? null;
       },
 
       skinInfo() {
