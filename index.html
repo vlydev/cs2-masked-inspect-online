@@ -370,7 +370,7 @@
 
 <script src="https://github.com/vlydev/cs2-masked-inspect-js/releases/download/v1.1.1/cs2-masked-inspect.min.js"></script>
 <script>
-  const { InspectLink } = Cs2MaskedInspect;
+  const { InspectLink, toGenCode, genCodeFromLink } = Cs2MaskedInspect;
 
   const input    = document.getElementById('url-input');
   const decodeBtn = document.getElementById('decode-btn');
@@ -463,9 +463,9 @@
 
     // Gen code
     try {
-      genCodeBox.textContent = InspectLink.genCodeFromLink(url);
+      genCodeBox.textContent = genCodeFromLink(url);
     } catch {
-      genCodeBox.textContent = InspectLink.toGenCode(item);
+      genCodeBox.textContent = toGenCode(item);
     }
 
     resultWrap.style.display = '';
