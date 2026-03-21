@@ -42,6 +42,12 @@
     table { font-size: .85rem; }
     th { font-weight: normal; color: var(--pico-muted-color); width: 9rem; }
 
+    /* sticker/keychain cell */
+    .item-cell { display: flex; align-items: center; gap: .6rem; }
+    .item-cell img { width: 40px; height: 40px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: var(--pico-card-background-color); }
+    .item-cell .item-name { font-size: .82rem; line-height: 1.3; }
+    .item-cell .item-id   { font-size: .72rem; color: var(--pico-muted-color); }
+
     /* input row */
     .input-row { display: flex; gap: .5rem; }
     .input-row input { flex: 1; margin: 0; font-size: .85rem; }
@@ -117,12 +123,22 @@
           <h6 style="margin-bottom:.4rem">Stickers</h6>
           <figure>
             <table>
-              <thead><tr><th style="width:4rem">Slot</th><th>ID</th><th>Wear</th></tr></thead>
+              <thead><tr><th style="width:4rem">Slot</th><th>Sticker</th><th>Wear</th></tr></thead>
               <tbody>
                 <template x-for="(s, i) in result.stickers" :key="i">
                   <tr>
-                    <td class="val-num"   x-text="s.slot ?? i"></td>
-                    <td class="val-num"   x-text="s.id ?? s.stickerId ?? '—'"></td>
+                    <td class="val-num" x-text="s.slot ?? i"></td>
+                    <td>
+                      <div class="item-cell">
+                        <template x-if="stickerInfo(s.id ?? s.stickerId).image">
+                          <img :src="stickerInfo(s.id ?? s.stickerId).image" :alt="stickerInfo(s.id ?? s.stickerId).name" loading="lazy" />
+                        </template>
+                        <div>
+                          <div class="item-name" x-text="stickerInfo(s.id ?? s.stickerId).name"></div>
+                          <div class="item-id"   x-text="'#' + (s.id ?? s.stickerId ?? '—')"></div>
+                        </div>
+                      </div>
+                    </td>
                     <td class="val-float" x-text="fmtFloat(s.wear)"></td>
                   </tr>
                 </template>
@@ -138,11 +154,21 @@
           <h6 style="margin-bottom:.4rem">Keychains</h6>
           <figure>
             <table>
-              <thead><tr><th>ID</th><th>Wear</th></tr></thead>
+              <thead><tr><th>Keychain</th><th>Wear</th></tr></thead>
               <tbody>
                 <template x-for="(k, i) in result.keychains" :key="i">
                   <tr>
-                    <td class="val-num"   x-text="k.id ?? k.stickerId ?? '—'"></td>
+                    <td>
+                      <div class="item-cell">
+                        <template x-if="keychainInfo(k.id ?? k.stickerId).image">
+                          <img :src="keychainInfo(k.id ?? k.stickerId).image" :alt="keychainInfo(k.id ?? k.stickerId).name" loading="lazy" />
+                        </template>
+                        <div>
+                          <div class="item-name" x-text="keychainInfo(k.id ?? k.stickerId).name"></div>
+                          <div class="item-id"   x-text="'#' + (k.id ?? k.stickerId ?? '—')"></div>
+                        </div>
+                      </div>
+                    </td>
                     <td class="val-float" x-text="fmtFloat(k.wear)"></td>
                   </tr>
                 </template>
@@ -227,7 +253,12 @@
       genCode: '',
       error:   '',
 
-      decode() {
+      _stickerCache:  null,  // Map<id, {name, image}> — stickers + patches combined
+      _keychainCache: null,  // Map<id, {name, image}>
+      _stickerLoading:  false,
+      _keychainLoading: false,
+
+      async decode() {
         const u = this.url.trim();
         if (!u) return;
         this.error = '';
@@ -235,11 +266,56 @@
           this.result  = InspectLink.deserialize(u);
           try { this.genCode = genCodeFromLink(u); }
           catch { this.genCode = toGenCode(this.result); }
+
+          if (this.result.stickers?.length)  this._loadStickers();
+          if (this.result.keychains?.length) this._loadKeychains();
         } catch (e) {
           this.result  = null;
           this.genCode = '';
           this.error   = 'Failed to decode: ' + (e?.message ?? String(e));
         }
+      },
+
+      async _loadStickers() {
+        if (this._stickerCache || this._stickerLoading) return;
+        this._stickerLoading = true;
+        try {
+          const base = 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/';
+          const [stickers, patches] = await Promise.all([
+            fetch(base + 'stickers.json').then(r => r.json()),
+            fetch(base + 'patches.json').then(r => r.json()),
+          ]);
+          const map = new Map();
+          [...stickers, ...patches].forEach(item => {
+            const m = item.id?.match(/\d+$/);
+            if (m) map.set(Number(m[0]), { name: item.name, image: item.image });
+          });
+          this._stickerCache = map;
+        } catch { /* silently ignore */ }
+        this._stickerLoading = false;
+      },
+
+      async _loadKeychains() {
+        if (this._keychainCache || this._keychainLoading) return;
+        this._keychainLoading = true;
+        try {
+          const data = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keychains.json').then(r => r.json());
+          const map = new Map();
+          data.forEach(item => {
+            const m = item.id?.match(/\d+$/);
+            if (m) map.set(Number(m[0]), { name: item.name, image: item.image });
+          });
+          this._keychainCache = map;
+        } catch { /* silently ignore */ }
+        this._keychainLoading = false;
+      },
+
+      stickerInfo(id) {
+        return this._stickerCache?.get(Number(id)) ?? { name: id != null ? '#' + id : '—', image: null };
+      },
+
+      keychainInfo(id) {
+        return this._keychainCache?.get(Number(id)) ?? { name: id != null ? '#' + id : '—', image: null };
       },
 
       clear() {
