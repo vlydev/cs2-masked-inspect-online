@@ -368,8 +368,9 @@
   <a href="https://github.com/vlydev" target="_blank" rel="noopener">github.com/vlydev</a>
 </footer>
 
-<script type="module">
-  import { InspectLink } from 'https://cdn.jsdelivr.net/gh/vlydev/cs2-masked-inspect-js/index.js';
+<script src="vendor/cs2-masked-inspect.js"></script>
+<script>
+  const { InspectLink } = Cs2MaskedInspect;
 
   const input    = document.getElementById('url-input');
   const decodeBtn = document.getElementById('decode-btn');
