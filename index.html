@@ -161,7 +161,7 @@
             <tr><th>paintIndex</th> <td class="val-num" x-text="result.paintIndex ?? '—'"></td></tr>
             <tr><th>paintSeed</th>  <td class="val-num" x-text="result.paintSeed  ?? '—'"></td></tr>
             <tr><th>paintWear</th>  <td class="val-float" x-text="fmtFloat(result.paintWear)"></td></tr>
-            <template x-if="!isDirectItem() && result.quality === 4">
+            <template x-if="!isDirectItem() && result.quality === 9">
               <tr>
                 <th x-text="killEaterLabel(result.killEaterScoreType)"></th>
                 <td class="val-num" x-text="result.killEaterValue ?? 0"></td>
@@ -535,13 +535,21 @@
       },
 
       qualityHtml(q) {
+        // EEconItemQuality enum (shared TF2/CS2 Steam enum)
+        // 4 = Unique = normal skin (most common, not worth showing)
         const map = {
-          0: ['Normal',     '#888'],
-          3: ['Souvenir',   '#ffd700'],
-          4: ['StatTrak™',  '#cf6a32'],
-          9: ['★',          '#8847ff'],
+          0:  ['Normal',    '#888'],
+          1:  ['Genuine',   '#4d7455'],
+          2:  ['Vintage',   '#476291'],
+          3:  ['Unusual',   '#8650ac'],
+          5:  ['Community', '#70b04a'],
+          6:  ['Developer', '#70b04a'],
+          7:  ['Self-Made', '#70b04a'],
+          9:  ['StatTrak™', '#cf6a32'],
+          12: ['Souvenir',  '#ffd700'],
         };
-        const [label, color] = map[q] ?? ['#' + q, '#888'];
+        if (q === 4) return '<span style="color:#888">Normal</span>';
+        const [label, color] = map[q] ?? ['quality #' + q, '#888'];
         return `<span style="color:${color}">${label}</span>`;
       },
 
