@@ -442,7 +442,7 @@
           <td class="val-float">${formatFloat(s.wear)}</td>
         </tr>`
       ).join('');
-      stickersSection.style.display = '';
+      stickersSection.style.display = 'block';
     } else {
       stickersSection.style.display = 'none';
     }
@@ -456,7 +456,7 @@
           <td class="val-float">${formatFloat(k.wear)}</td>
         </tr>`
       ).join('');
-      keychainsSection.style.display = '';
+      keychainsSection.style.display = 'block';
     } else {
       keychainsSection.style.display = 'none';
     }
@@ -468,7 +468,7 @@
       genCodeBox.textContent = toGenCode(item);
     }
 
-    resultWrap.style.display = '';
+    resultWrap.style.display = 'block';
   }
 
   function clear() {
