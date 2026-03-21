@@ -304,6 +304,24 @@
       _stickerLoading:  false,
       _keychainLoading: false,
 
+      _CACHE_TTL: 24 * 60 * 60 * 1000,  // 24 hours
+
+      _lsGet(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return null;
+          const { fetchedAt, entries } = JSON.parse(raw);
+          if (Date.now() - fetchedAt > this._CACHE_TTL) { localStorage.removeItem(key); return null; }
+          return new Map(entries);
+        } catch { return null; }
+      },
+
+      _lsSet(key, map) {
+        try {
+          localStorage.setItem(key, JSON.stringify({ fetchedAt: Date.now(), entries: [...map] }));
+        } catch { /* localStorage full or disabled — ignore */ }
+      },
+
       async decode() {
         const u = this.url.trim();
         if (!u) return;
@@ -325,6 +343,8 @@
       async _loadStickers() {
         if (this._stickerCache || this._stickerLoading) return;
         this._stickerLoading = true;
+        const cached = this._lsGet('cs2_stickers_v1');
+        if (cached) { this._stickerCache = cached; this._stickerLoading = false; return; }
         try {
           const base = 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/';
           const [stickers, patches] = await Promise.all([
@@ -337,6 +357,7 @@
             if (m) map.set(Number(m[0]), { name: item.name, image: item.image });
           });
           this._stickerCache = map;
+          this._lsSet('cs2_stickers_v1', map);
         } catch { /* silently ignore */ }
         this._stickerLoading = false;
       },
@@ -344,6 +365,8 @@
       async _loadKeychains() {
         if (this._keychainCache || this._keychainLoading) return;
         this._keychainLoading = true;
+        const cached = this._lsGet('cs2_keychains_v1');
+        if (cached) { this._keychainCache = cached; this._keychainLoading = false; return; }
         try {
           const data = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keychains.json').then(r => r.json());
           const map = new Map();
@@ -352,6 +375,7 @@
             if (m) map.set(Number(m[0]), { name: item.name, image: item.image });
           });
           this._keychainCache = map;
+          this._lsSet('cs2_keychains_v1', map);
         } catch { /* silently ignore */ }
         this._keychainLoading = false;
       },
