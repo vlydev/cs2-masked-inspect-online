@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CS2 Masked Inspect Decoder</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0e0e0e;
+      --bg2:      #161616;
+      --bg3:      #1e1e1e;
+      --border:   #2a2a2a;
+      --text:     #d4d4d4;
+      --muted:    #666;
+      --accent:   #4ec9b0;
+      --accent2:  #569cd6;
+      --green:    #6a9955;
+      --yellow:   #dcdcaa;
+      --red:      #f44747;
+      --mono:     "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px 16px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: .02em;
+    }
+    header .tag {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 1px 7px;
+      border-radius: 3px;
+    }
+
+    /* ── Libraries ── */
+    .libs-section {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+    .libs-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .libs-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .lib-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      padding: 5px 11px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: var(--text);
+      transition: border-color .15s, background .15s;
+    }
+    .lib-chip:hover {
+      border-color: var(--accent);
+      background: var(--bg3);
+      text-decoration: none;
+      color: #fff;
+    }
+    .lib-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .lang-py   { background: #3572a5; }
+    .lang-js   { background: #f1e05a; }
+    .lang-ts   { background: #3178c6; }
+    .lang-php  { background: #4f5d95; }
+    .lang-cs   { background: #178600; }
+    .lang-go   { background: #00add8; }
+    .lang-rs   { background: #dea584; }
+    .lang-kt   { background: #a97bff; }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* ── Input area ── */
+    .input-wrap {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    #url-input {
+      flex: 1;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 9px 12px;
+      border-radius: 3px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #url-input:focus { border-color: var(--accent2); }
+    #url-input::placeholder { color: var(--muted); }
+
+    button {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 9px 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      white-space: nowrap;
+    }
+    button:hover { border-color: var(--accent); color: #fff; }
+    button:active { background: var(--bg); }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    /* ── Error ── */
+    #error-box {
+      display: none;
+      border: 1px solid var(--red);
+      background: #1a0a0a;
+      color: var(--red);
+      padding: 9px 13px;
+      border-radius: 3px;
+      margin-bottom: 18px;
+      font-size: 12px;
+    }
+
+    /* ── Results ── */
+    #result-wrap { display: none; }
+
+    .result-section { margin-bottom: 20px; }
+
+    .result-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 5px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 400;
+      width: 160px;
+      white-space: nowrap;
+    }
+    td { color: var(--text); }
+    td.val-num   { color: var(--accent2); }
+    td.val-float { color: var(--accent); }
+    td.val-str   { color: var(--yellow); }
+    td.val-badge {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    tr:last-child th, tr:last-child td { border-bottom: none; }
+    tr:hover td, tr:hover th { background: var(--bg2); }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+    .badge-masked  { color: #4ec9b0; border-color: #4ec9b050; background: #4ec9b010; }
+    .badge-hybrid  { color: #dcdcaa; border-color: #dcdcaa50; background: #dcdcaa10; }
+    .badge-classic { color: #ce9178; border-color: #ce917850; background: #ce917810; }
+
+    .gen-code-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 9px 13px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: var(--green);
+      word-break: break-all;
+      cursor: text;
+      user-select: all;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 13px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      main { padding: 16px; }
+      .libs-section { padding: 12px 16px; }
+      header { padding: 14px 16px 12px; }
+      footer { padding: 12px 16px; flex-direction: column; gap: 4px; align-items: flex-start; }
+      th { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CS2 Masked Inspect Decoder</h1>
+  <span class="tag">offline · client-side</span>
+</header>
+
+<div class="libs-section">
+  <div class="libs-label">Parsing libraries</div>
+  <div class="libs-grid">
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-python" target="_blank" rel="noopener">
+      <span class="lib-dot lang-py"></span>Python
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-js" target="_blank" rel="noopener">
+      <span class="lib-dot lang-js"></span>JavaScript
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-ts" target="_blank" rel="noopener">
+      <span class="lib-dot lang-ts"></span>TypeScript
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-php" target="_blank" rel="noopener">
+      <span class="lib-dot lang-php"></span>PHP
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-csharp" target="_blank" rel="noopener">
+      <span class="lib-dot lang-cs"></span>C#
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-go" target="_blank" rel="noopener">
+      <span class="lib-dot lang-go"></span>Go
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-rust" target="_blank" rel="noopener">
+      <span class="lib-dot lang-rs"></span>Rust
+    </a>
+    <a class="lib-chip" href="https://github.com/vlydev/cs2-masked-inspect-kotlin" target="_blank" rel="noopener">
+      <span class="lib-dot lang-kt"></span>Kotlin
+    </a>
+  </div>
+</div>
+
+<main>
+  <div class="section-label">Inspect URL</div>
+
+  <div class="input-wrap">
+    <input
+      id="url-input"
+      type="text"
+      placeholder="csgo_econ_action_preview%20..."
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button id="decode-btn">Decode</button>
+    <button id="clear-btn">Clear</button>
+  </div>
+  <div class="hint">Supports masked, hybrid, and steam:// inspect links.</div>
+
+  <div id="error-box"></div>
+
+  <div id="result-wrap">
+
+    <div class="result-section">
+      <div class="result-title">Item</div>
+      <table id="item-table"></table>
+    </div>
+
+    <div class="result-section" id="stickers-section" style="display:none">
+      <div class="result-title">Stickers</div>
+      <table id="stickers-table">
+        <thead>
+          <tr>
+            <th style="width:50px;color:var(--muted)">Slot</th>
+            <th style="color:var(--muted)">ID</th>
+            <th style="color:var(--muted)">Wear</th>
+          </tr>
+        </thead>
+        <tbody id="stickers-body"></tbody>
+      </table>
+    </div>
+
+    <div class="result-section" id="keychains-section" style="display:none">
+      <div class="result-title">Keychains</div>
+      <table id="keychains-table">
+        <thead>
+          <tr>
+            <th style="color:var(--muted)">ID</th>
+            <th style="color:var(--muted)">Wear</th>
+          </tr>
+        </thead>
+        <tbody id="keychains-body"></tbody>
+      </table>
+    </div>
+
+    <div class="result-section">
+      <div class="result-title">Gen Code</div>
+      <div class="gen-code-box" id="gen-code-box"></div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>Decoding is performed locally in your browser — no data is sent to any server.</span>
+  <a href="https://github.com/vlydev" target="_blank" rel="noopener">github.com/vlydev</a>
+</footer>
+
+<script type="module">
+  import { InspectLink } from 'https://cdn.jsdelivr.net/gh/vlydev/cs2-masked-inspect-js/index.js';
+
+  const input    = document.getElementById('url-input');
+  const decodeBtn = document.getElementById('decode-btn');
+  const clearBtn  = document.getElementById('clear-btn');
+  const errorBox  = document.getElementById('error-box');
+  const resultWrap = document.getElementById('result-wrap');
+  const itemTable  = document.getElementById('item-table');
+  const stickersSection = document.getElementById('stickers-section');
+  const stickersBody    = document.getElementById('stickers-body');
+  const keychainsSection = document.getElementById('keychains-section');
+  const keychainsBody    = document.getElementById('keychains-body');
+  const genCodeBox = document.getElementById('gen-code-box');
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.style.display = 'block';
+    resultWrap.style.display = 'none';
+  }
+
+  function hideError() {
+    errorBox.style.display = 'none';
+  }
+
+  function row(label, value, cls = '') {
+    return `<tr><th>${label}</th><td class="${cls}">${value}</td></tr>`;
+  }
+
+  function formatFloat(f) {
+    if (f == null) return '<span style="color:var(--muted)">—</span>';
+    return Number(f).toFixed(10).replace(/0+$/, '').replace(/\.$/, '.0');
+  }
+
+  function linkType(url) {
+    if (InspectLink.isMasked(url))   return '<span class="badge badge-masked">masked</span>';
+    if (InspectLink.isClassic(url))  return '<span class="badge badge-classic">classic</span>';
+    return '<span class="badge badge-hybrid">hybrid</span>';
+  }
+
+  function decode() {
+    const url = input.value.trim();
+    if (!url) return;
+
+    hideError();
+
+    let item;
+    try {
+      item = InspectLink.deserialize(url);
+    } catch (e) {
+      showError('Failed to decode: ' + (e?.message ?? String(e)));
+      return;
+    }
+
+    // Item table
+    let html = '';
+    html += row('type',        linkType(url));
+    html += row('defIndex',    item.defIndex  ?? '—', 'val-num');
+    html += row('paintIndex',  item.paintIndex ?? '—', 'val-num');
+    html += row('paintSeed',   item.paintSeed  ?? '—', 'val-num');
+    html += row('paintWear',   formatFloat(item.paintWear), 'val-float');
+    itemTable.innerHTML = html;
+
+    // Stickers
+    const stickers = item.stickers ?? [];
+    if (stickers.length) {
+      stickersBody.innerHTML = stickers.map((s, i) =>
+        `<tr>
+          <td class="val-num">${s.slot ?? i}</td>
+          <td class="val-num">${s.id ?? s.stickerId ?? '—'}</td>
+          <td class="val-float">${formatFloat(s.wear)}</td>
+        </tr>`
+      ).join('');
+      stickersSection.style.display = '';
+    } else {
+      stickersSection.style.display = 'none';
+    }
+
+    // Keychains
+    const keychains = item.keychains ?? [];
+    if (keychains.length) {
+      keychainsBody.innerHTML = keychains.map(k =>
+        `<tr>
+          <td class="val-num">${k.id ?? k.stickerId ?? '—'}</td>
+          <td class="val-float">${formatFloat(k.wear)}</td>
+        </tr>`
+      ).join('');
+      keychainsSection.style.display = '';
+    } else {
+      keychainsSection.style.display = 'none';
+    }
+
+    // Gen code
+    try {
+      genCodeBox.textContent = InspectLink.genCodeFromLink(url);
+    } catch {
+      genCodeBox.textContent = InspectLink.toGenCode(item);
+    }
+
+    resultWrap.style.display = '';
+  }
+
+  function clear() {
+    input.value = '';
+    hideError();
+    resultWrap.style.display = 'none';
+    input.focus();
+  }
+
+  decodeBtn.addEventListener('click', decode);
+  clearBtn.addEventListener('click', clear);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') decode(); });
+
+  // Auto-decode on paste
+  input.addEventListener('paste', () => {
+    setTimeout(decode, 0);
+  });
+</script>
+
+</body>
+</html>
