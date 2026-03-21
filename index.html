@@ -44,7 +44,18 @@
 
     /* sticker/keychain cell */
     .item-cell { display: flex; align-items: center; gap: .6rem; }
-    .item-cell img { width: 40px; height: 40px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: var(--pico-card-background-color); }
+    .item-cell img { width: 40px; height: 40px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: var(--pico-card-background-color); cursor: zoom-in; }
+
+    /* image hover popup */
+    .img-popup {
+      position: fixed; z-index: 9999; pointer-events: none;
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 6px; padding: 6px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.35);
+      transition: opacity .12s ease;
+    }
+    .img-popup img { width: 180px; height: 180px; object-fit: contain; display: block; }
     .item-cell .item-name { font-size: .82rem; line-height: 1.3; }
     .item-cell .item-id   { font-size: .72rem; color: var(--pico-muted-color); }
     .item-cell .item-meta { font-size: .7rem; color: var(--pico-muted-color); margin-top: .15rem; display: flex; flex-wrap: wrap; gap: .3rem; }
@@ -56,11 +67,18 @@
     .input-row button { margin: 0; padding: .5rem 1rem; font-size: .85rem; width: auto; }
 
     footer { font-size: .8rem; margin-top: 2rem; }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
 <body>
 
 <main x-data="decoder()" @paste.window="onWindowPaste($event)">
+
+  <!-- Image hover popup -->
+  <div class="img-popup" x-show="imgPopup.url" x-cloak
+       :style="`top:${imgPopup.y}px; left:${imgPopup.x}px; opacity:${imgPopup.url ? 1 : 0}`">
+    <img :src="imgPopup.url" :alt="imgPopup.alt" />
+  </div>
 
   <hgroup>
     <h1>CS2 Masked Inspect Decoder</h1>
@@ -153,7 +171,9 @@
                     <td>
                       <div class="item-cell">
                         <template x-if="stickerInfo(s.id ?? s.stickerId).image">
-                          <img :src="stickerInfo(s.id ?? s.stickerId).image" :alt="stickerInfo(s.id ?? s.stickerId).name" loading="lazy" />
+                          <img :src="stickerInfo(s.id ?? s.stickerId).image" :alt="stickerInfo(s.id ?? s.stickerId).name" loading="lazy"
+                               @mouseenter="showImgPopup($event, stickerInfo(s.id ?? s.stickerId))"
+                               @mouseleave="hideImgPopup()" />
                         </template>
                         <div>
                           <div class="item-name" x-text="stickerInfo(s.id ?? s.stickerId).name"></div>
@@ -184,7 +204,9 @@
                     <td>
                       <div class="item-cell">
                         <template x-if="keychainInfo(k.id ?? k.stickerId).image">
-                          <img :src="keychainInfo(k.id ?? k.stickerId).image" :alt="keychainInfo(k.id ?? k.stickerId).name" loading="lazy" />
+                          <img :src="keychainInfo(k.id ?? k.stickerId).image" :alt="keychainInfo(k.id ?? k.stickerId).name" loading="lazy"
+                               @mouseenter="showImgPopup($event, keychainInfo(k.id ?? k.stickerId))"
+                               @mouseleave="hideImgPopup()" />
                         </template>
                         <div>
                           <div class="item-name" x-text="keychainInfo(k.id ?? k.stickerId).name"></div>
@@ -275,6 +297,7 @@
       result:  null,
       genCode: '',
       error:   '',
+      imgPopup: { url: null, alt: '', x: 0, y: 0 },
 
       _stickerCache:  null,  // Map<id, {name, image}> — stickers + patches combined
       _keychainCache: null,  // Map<id, {name, image}>
@@ -356,6 +379,19 @@
       fmtFloat(f) {
         if (f == null) return '—';
         return Number(f).toFixed(10).replace(/0+$/, '').replace(/\.$/, '.0');
+      },
+
+      showImgPopup(e, info) {
+        const POPUP_W = 192, POPUP_H = 192, OFFSET = 12;
+        let x = e.clientX + OFFSET;
+        let y = e.clientY + OFFSET;
+        if (x + POPUP_W > window.innerWidth  - 8) x = e.clientX - POPUP_W - OFFSET;
+        if (y + POPUP_H > window.innerHeight - 8) y = e.clientY - POPUP_H - OFFSET;
+        this.imgPopup = { url: info.image, alt: info.name, x, y };
+      },
+
+      hideImgPopup() {
+        this.imgPopup = { url: null, alt: '', x: 0, y: 0 };
       },
 
       linkTypeBadge() {
