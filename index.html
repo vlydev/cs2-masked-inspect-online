@@ -47,6 +47,8 @@
     .item-cell img { width: 40px; height: 40px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: var(--pico-card-background-color); }
     .item-cell .item-name { font-size: .82rem; line-height: 1.3; }
     .item-cell .item-id   { font-size: .72rem; color: var(--pico-muted-color); }
+    .item-cell .item-meta { font-size: .7rem; color: var(--pico-muted-color); margin-top: .15rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+    .item-cell .item-meta span { background: var(--pico-card-background-color); border: 1px solid var(--pico-muted-border-color); border-radius: 2px; padding: 0 .3rem; }
 
     /* input row */
     .input-row { display: flex; gap: .5rem; }
@@ -109,10 +111,30 @@
         <table>
           <tbody>
             <tr><th>type</th>       <td x-html="linkTypeBadge()"></td></tr>
-            <tr><th>defIndex</th>   <td class="val-num"  x-text="result.defIndex  ?? '—'"></td></tr>
-            <tr><th>paintIndex</th> <td class="val-num"  x-text="result.paintIndex ?? '—'"></td></tr>
-            <tr><th>paintSeed</th>  <td class="val-num"  x-text="result.paintSeed  ?? '—'"></td></tr>
+            <tr><th>quality</th>    <td x-html="qualityHtml(result.quality)"></td></tr>
+            <tr><th>rarity</th>     <td x-html="rarityHtml(result.rarity)"></td></tr>
+            <tr><th>defIndex</th>   <td class="val-num" x-text="result.defIndex  ?? '—'"></td></tr>
+            <tr><th>paintIndex</th> <td class="val-num" x-text="result.paintIndex ?? '—'"></td></tr>
+            <tr><th>paintSeed</th>  <td class="val-num" x-text="result.paintSeed  ?? '—'"></td></tr>
             <tr><th>paintWear</th>  <td class="val-float" x-text="fmtFloat(result.paintWear)"></td></tr>
+            <template x-if="result.quality === 4">
+              <tr>
+                <th x-text="killEaterLabel(result.killEaterScoreType)"></th>
+                <td class="val-num" x-text="result.killEaterValue ?? 0"></td>
+              </tr>
+            </template>
+            <template x-if="result.customName">
+              <tr><th>name tag</th><td style="color:var(--pico-primary)" x-text="'«' + result.customName + '»'"></td></tr>
+            </template>
+            <template x-if="result.origin">
+              <tr><th>origin</th><td x-text="originLabel(result.origin)"></td></tr>
+            </template>
+            <template x-if="result.itemId">
+              <tr><th>itemId</th><td class="val-num" style="color:var(--pico-muted-color)" x-text="result.itemId"></td></tr>
+            </template>
+            <template x-if="result.accountId">
+              <tr><th>accountId</th><td class="val-num" style="color:var(--pico-muted-color)" x-text="result.accountId"></td></tr>
+            </template>
           </tbody>
         </table>
       </figure>
@@ -136,6 +158,7 @@
                         <div>
                           <div class="item-name" x-text="stickerInfo(s.id ?? s.stickerId).name"></div>
                           <div class="item-id"   x-text="'#' + (s.id ?? s.stickerId ?? '—')"></div>
+                          <div class="item-meta" x-html="stickerMeta(s)"></div>
                         </div>
                       </div>
                     </td>
@@ -339,6 +362,62 @@
         if (InspectLink.isMasked(this.url))  return '<span class="badge badge-masked">masked</span>';
         if (InspectLink.isClassic(this.url)) return '<span class="badge badge-classic">classic</span>';
         return '<span class="badge badge-hybrid">hybrid</span>';
+      },
+
+      qualityHtml(q) {
+        const map = {
+          0: ['Normal',     '#888'],
+          3: ['Souvenir',   '#ffd700'],
+          4: ['StatTrak™',  '#cf6a32'],
+          9: ['★',          '#8847ff'],
+        };
+        const [label, color] = map[q] ?? ['#' + q, '#888'];
+        return `<span style="color:${color}">${label}</span>`;
+      },
+
+      rarityHtml(r) {
+        const map = {
+          1: ['Consumer Grade',   '#b0b0b0'],
+          2: ['Industrial Grade', '#6496e1'],
+          3: ['Mil-Spec',         '#4b69ff'],
+          4: ['Restricted',       '#8847ff'],
+          5: ['Classified',       '#d32ce6'],
+          6: ['Covert',           '#eb4b4b'],
+          7: ['Contraband',       '#e4ae39'],
+        };
+        const [label, color] = map[r] ?? ['#' + r, '#888'];
+        return `<span style="color:${color}">${label}</span>`;
+      },
+
+      killEaterLabel(type) {
+        const map = { 0: 'StatTrak™ Kills', 1: 'StatTrak™ MVPs' };
+        return map[type] ?? 'StatTrak™ #' + type;
+      },
+
+      originLabel(o) {
+        const map = {
+          0: 'Timed Drop', 1: 'Achievement', 2: 'Purchased', 3: 'Traded',
+          4: 'Crafted', 5: 'Store Promotion', 6: 'Gifted', 7: 'Support Granted',
+          8: 'Unboxed', 9: 'Earned', 11: 'Wrapped Gift', 13: 'Steam Purchase',
+          16: 'Collection Reward', 21: 'Tournament Drop', 23: 'Quest Reward',
+          24: 'Level Up Reward',
+        };
+        return map[o] ?? '#' + o;
+      },
+
+      stickerMeta(s) {
+        const tags = [];
+        if (s.scale    != null) tags.push(`scale ${Number(s.scale).toFixed(2)}`);
+        if (s.rotation != null) tags.push(`rot ${Number(s.rotation).toFixed(1)}°`);
+        if (s.offsetX  != null || s.offsetY != null) {
+          const x = s.offsetX != null ? Number(s.offsetX).toFixed(3) : '0';
+          const y = s.offsetY != null ? Number(s.offsetY).toFixed(3) : '0';
+          tags.push(`offset ${x}, ${y}`);
+        }
+        if (s.offsetZ  != null) tags.push(`offsetZ ${Number(s.offsetZ).toFixed(3)}`);
+        if (s.tintId)           tags.push(`tint #${s.tintId}`);
+        if (s.pattern)          tags.push(`pattern ${s.pattern}`);
+        return tags.map(t => `<span>${t}</span>`).join('');
       },
     }));
   });
