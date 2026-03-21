@@ -372,7 +372,7 @@
       async _loadSkins() {
         if (this._skinCache || this._skinLoading) return;
         this._skinLoading = true;
-        const cached = this._lsGet('cs2_skins_v1');
+        const cached = this._lsGet('cs2_skins_v2');
         if (cached) { this._skinCache = cached; this._skinLoading = false; return; }
         try {
           const data = await fetch('https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/skins_not_grouped.json').then(r => r.json());
@@ -380,11 +380,14 @@
           const wearRe = /\s+\((?:Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$/;
           data.forEach(item => {
             const pi = Number(item.paint_index);
-            if (!pi || map.has(pi)) return;  // skip 0 and duplicates (keep first = FN)
-            map.set(pi, { name: item.name.replace(wearRe, ''), image: item.image });
+            const wi = Number(item.weapon?.weapon_id);
+            if (!pi || !wi) return;
+            const key = `${wi}_${pi}`;
+            if (map.has(key)) return;  // keep first = FN
+            map.set(key, { name: item.name.replace(wearRe, ''), image: item.image });
           });
           this._skinCache = map;
-          this._lsSet('cs2_skins_v1', map);
+          this._lsSet('cs2_skins_v2', map);
         } catch { /* silently ignore */ }
         this._skinLoading = false;
       },
@@ -469,7 +472,7 @@
           return this._stickerCache ? (this.stickerInfo(s.id ?? s.stickerId) ?? null) : null;
         }
         if (!this.result.paintIndex || !this._skinCache) return null;
-        return this._skinCache.get(Number(this.result.paintIndex)) ?? null;
+        return this._skinCache.get(`${this.result.defIndex}_${this.result.paintIndex}`) ?? null;
       },
 
       wearLabel(wear) {
@@ -484,7 +487,7 @@
 
       skinInfo() {
         if (!this.result?.paintIndex || !this._skinCache) return null;
-        return this._skinCache.get(Number(this.result.paintIndex)) ?? null;
+        return this._skinCache.get(`${this.result.defIndex}_${this.result.paintIndex}`) ?? null;
       },
 
       stickerInfo(id) {
