@@ -77,7 +77,8 @@ https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en
 ### Regular skin (weapon)
 - `paintIndex > 0` — look up skin in `_skinCache`
 - Show: type, quality, rarity, skin (img+name), defIndex, paintIndex, paintSeed, paintWear
-- If quality=4 (StatTrak™) — show kill counter value
+- If quality=9 (StatTrak™) — show kill counter value
+- Doppler phase shown next to name if paintIndex matches known Doppler paint indices (Phase 1–4, Ruby, Sapphire, Black Pearl, Emerald)
 
 ### Direct item (sticker / patch / keychain)
 Condition: `paintIndex=0` AND `paintSeed=0` AND (`stickers.length=1` OR `keychains.length=1`).
