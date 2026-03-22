@@ -67,8 +67,10 @@ https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en
 ```
 
 - Stickers and patches are merged into one Map (impossible to distinguish in inspect data)
-- `skins_not_grouped.json`: one `paint_index` = 5 wear variants; only the first (FN) is kept, wear suffix stripped from name
+- `skins_not_grouped.json`: each combination of weapon+paint+variant has 5 wear entries; only FN is kept, wear suffix stripped from name
+- Cache key: `"${weapon_id}_${paint_index}_${suffix}"` where suffix = `st` (stattrak), `sv` (souvenir), `normal`
 - `paint_index` in JSON is a string; in inspect data it's a number
+- Lookup suffix derived from `result.quality`: 9 → `st`, 12 → `sv`, else → `normal`
 
 ## Decode Logic
 
