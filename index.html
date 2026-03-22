@@ -371,10 +371,21 @@
           if (this.result.paintIndex)        this._loadSkins();
           if (this.result.stickers?.length)  this._loadStickers();
           if (this.result.keychains?.length) this._loadKeychains();
+
+          gtag('event', 'decode_success', {
+            link_type:    InspectLink.isMasked(u) ? 'masked' : InspectLink.isClassic(u) ? 'classic' : 'hybrid',
+            is_direct_item: this.isDirectItem(),
+            has_stickers:   (this.result.stickers?.length  ?? 0) > 0,
+            has_keychains:  (this.result.keychains?.length ?? 0) > 0,
+          });
         } catch (e) {
           this.result  = null;
           this.genCode = '';
           this.error   = 'Failed to decode: ' + (e?.message ?? String(e));
+
+          gtag('event', 'decode_error', {
+            error_message: e?.message ?? String(e),
+          });
         }
       },
 
