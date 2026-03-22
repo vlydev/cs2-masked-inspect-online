@@ -169,11 +169,11 @@
                     <div>
                       <div class="item-name">
                         <span x-text="resolvedItem().name"></span>
-                        <template x-if="!isDirectItem() && dopplerPhase(result.paintIndex)">
-                          <span class="phase-label" x-text="dopplerPhase(result.paintIndex)"></span>
-                        </template>
                         <template x-if="!isDirectItem() && wearLabel(result.paintWear)">
                           <span class="wear-label" x-text="'(' + wearLabel(result.paintWear) + ')'"></span>
+                        </template>
+                        <template x-if="!isDirectItem() && dopplerPhase(result.paintIndex)">
+                          <span class="phase-label" x-text="dopplerPhase(result.paintIndex)"></span>
                         </template>
                       </div>
                       <div class="item-id" x-text="isDirectItem() ? '#' + directItemId() : 'paintIndex #' + result.paintIndex"></div>
