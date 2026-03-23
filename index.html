@@ -497,6 +497,12 @@
         if (this.result.paintIndex || this.result.paintSeed) return false;
         const st = this.result.stickers  ?? [];
         const kc = this.result.keychains ?? [];
+        if (kc.length === 1) {
+          // If the keychain has 3D position offsets it is physically attached to a weapon
+          // (C4, knife, etc.) — not a standalone charm/slab inspect.
+          const k = kc[0];
+          if (k.offsetX != null || k.offsetY != null || k.offsetZ != null) return false;
+        }
         return st.length === 1 || kc.length === 1;
       },
 
