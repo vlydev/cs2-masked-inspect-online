@@ -29,6 +29,7 @@ const {
   buildKeyMap,
   buildCollectibleMap,
   buildCrateMap,
+  buildMusicKitMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -45,9 +46,10 @@ let agentMap;    // Map<def_index, {name, image}>
 let keyMap;           // Map<def_index, {name, image}>
 let collectibleMap;   // Map<def_index, {name, image}>
 let crateMap;         // Map<def_index, {name, image}>
+let musicKitMap;      // Map<musicIndex (= def_index), {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData, collectiblesData, cratesData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData, collectiblesData, cratesData, musicKitsData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
@@ -57,6 +59,7 @@ before(async () => {
     fetch(CATALOG_URLS.keys).then(r => r.json()),
     fetch(CATALOG_URLS.collectibles).then(r => r.json()),
     fetch(CATALOG_URLS.crates).then(r => r.json()),
+    fetch(CATALOG_URLS.musicKits).then(r => r.json()),
   ]);
   skinMap        = buildSkinMap(skinsData);
   stickerMap     = buildStickerMap(stickersData, patchesData);
@@ -66,6 +69,7 @@ before(async () => {
   keyMap         = buildKeyMap(keysData);
   collectibleMap = buildCollectibleMap(collectiblesData);
   crateMap       = buildCrateMap(cratesData);
+  musicKitMap    = buildMusicKitMap(musicKitsData);
 });
 
 // ---------------------------------------------------------------------------
@@ -119,6 +123,21 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Music Kit test: decoded → musicKitMap.get(musicIndex) → compare with expected name.
+ * Note: musicIndex is a separate proto field, not defIndex (all music kits share defIndex=1314).
+ */
+function musicKitTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from music kit catalog matches', () => {
+      const item = decoded(url);
+      const entry = musicKitMap.get(item.musicIndex);
+      assert.ok(entry != null, `music kit musicIndex ${item.musicIndex} not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -659,4 +678,17 @@ describe('Crate', () => {
     'steam://run/730//+csgo_econ_action_preview%20B3A31D7F5C1F07B2AB2C9593B39BB283B7DBB2C3A6B61CEECF');
   crateTest('Stockholm 2021 Nuke Souvenir Package',
     'steam://run/730//+csgo_econ_action_preview%20F4E45055244E4FF5EC3AD1D4F4DCF5C4F09C77747474F884E1404A4A5B');
+});
+
+// ===========================================================================
+// Music Kit (musicIndex field, not defIndex — all music kits share defIndex=1314)
+// ===========================================================================
+
+describe('Music Kit', () => {
+  musicKitTest('Music Kit | The Verkkars, EZ4ENCE',
+    'steam://run/730//+csgo_econ_action_preview%205343534BF15973537B5063573B532351DB5274448B151D');
+  musicKitTest('Music Kit | Juelz, Shooters',
+    'steam://run/730//+csgo_econ_action_preview%207C6C7C64DE765C7C547F4C78147C0C74F47D3C6145F30D');
+  musicKitTest('Valve, CS:GO',
+    'steam://run/730//+csgo_econ_action_preview%205242524AF05872527A5162563A522252DA531411018CAB');
 });

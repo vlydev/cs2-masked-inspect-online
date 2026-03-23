@@ -164,7 +164,7 @@
             <tr><th>rarity</th> <td x-html="rarityHtml(result.rarity)"></td></tr>
             <template x-if="resolvedItem()">
               <tr>
-                <th x-text="isDirectItem() ? directItemLabel() : (result.paintIndex ? 'skin' : (_keyCache?.has(result.defIndex) ? 'key' : _collectibleCache?.has(result.defIndex) ? 'collectible' : _crateCache?.has(result.defIndex) ? 'crate' : _agentCache?.has(result.defIndex) ? 'agent' : 'item'))"></th>
+                <th x-text="isDirectItem() ? directItemLabel() : (result.paintIndex ? 'skin' : (result.musicIndex ? 'music kit' : _keyCache?.has(result.defIndex) ? 'key' : _collectibleCache?.has(result.defIndex) ? 'collectible' : _crateCache?.has(result.defIndex) ? 'crate' : _agentCache?.has(result.defIndex) ? 'agent' : 'item'))"></th>
                 <td>
                   <div class="item-cell">
                     <template x-if="resolvedItem().image">
@@ -400,6 +400,7 @@
       _keyCache:          null,  // Map<def_index, {name, image}> — keys
       _collectibleCache:  null,  // Map<def_index, {name, image}> — collectibles
       _crateCache:        null,  // Map<def_index, {name, image}> — crates
+      _musicKitCache:     null,  // Map<musicIndex, {name, image}> — music kits
       _skinLoading:     false,
       _stickerLoading:  false,
       _keychainLoading: false,
@@ -409,6 +410,7 @@
       _keyLoading:          false,
       _collectibleLoading:  false,
       _crateLoading:        false,
+      _musicKitLoading:     false,
 
       _CACHE_TTL: 24 * 60 * 60 * 1000,  // 24 hours
 
@@ -437,6 +439,7 @@
           try { this.genCode = genCodeFromLink(u); }
           catch { this.genCode = toGenCode(this.result); }
 
+          if (this.result.musicIndex)        this._loadMusicKits();
           if (this.result.paintIndex)        this._loadSkins();
           if (this.result.stickers?.length)  this._loadStickers();
           if (this.result.keychains?.length) {
@@ -639,6 +642,26 @@
         this._crateLoading = false;
       },
 
+      async _loadMusicKits() {
+        if (this._musicKitCache || this._musicKitLoading) return;
+        this._musicKitLoading = true;
+        const cached = this._lsGet('cs2_music_kits_v1');
+        if (cached) { this._musicKitCache = cached; this._musicKitLoading = false; return; }
+        try {
+          const data = await fetch(CatalogUtils.CATALOG_URLS.musicKits).then(r => r.json());
+          const map = new Map();
+          data.forEach(item => {
+            if (item.def_index == null) return;
+            const key = Number(item.def_index);
+            if (map.has(key)) return; // keep first (non-StatTrak) entry
+            map.set(key, { name: item.name, image: item.image });
+          });
+          this._musicKitCache = map;
+          this._lsSet('cs2_music_kits_v1', map);
+        } catch { /* silently ignore */ }
+        this._musicKitLoading = false;
+      },
+
       isDirectItem() {
         if (!this.result) return false;
         if (this.result.paintIndex || this.result.paintSeed) return false;
@@ -685,6 +708,15 @@
 
       resolvedItem() {
         if (!this.result) return null;
+        if (this.result.musicIndex && this._musicKitCache) {
+          const kit = this._musicKitCache.get(this.result.musicIndex);
+          if (kit) {
+            if (this.result.quality === 9 && !kit.name.startsWith('StatTrak')) {
+              return { name: 'StatTrak\u2122 ' + kit.name, image: kit.image };
+            }
+            return kit;
+          }
+        }
         if (this.result.defIndex === 49 && !this.result.paintIndex) {
           return { name: 'C4 Explosive', image: null };
         }

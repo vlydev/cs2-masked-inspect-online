@@ -16,6 +16,7 @@ const CATALOG_URLS = {
   keys:         'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keys.json',
   collectibles: 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/collectibles.json',
   crates:       'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/crates.json',
+  musicKits:    'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/music_kits.json',
 };
 
 // ---------------------------------------------------------------------------
@@ -124,6 +125,24 @@ function buildGraffitiMap(graffiti) {
   const map = new Map();
   graffiti.forEach(item => {
     const key = `${item.def_index}_${item.color_index ?? 0}`;
+    map.set(key, { name: item.name, image: item.image });
+  });
+  return map;
+}
+
+/**
+ * Build music kit lookup map.
+ * Key: numeric def_index (= musicIndex in decoded item)
+ * Value: { name, image }
+ * @param {Array} kits - parsed music_kits.json
+ * @returns {Map<number,{name:string,image:string}>}
+ */
+function buildMusicKitMap(kits) {
+  const map = new Map();
+  kits.forEach(item => {
+    if (item.def_index == null) return;
+    const key = Number(item.def_index);
+    if (map.has(key)) return; // keep first (non-StatTrak) entry
     map.set(key, { name: item.name, image: item.image });
   });
   return map;
@@ -271,6 +290,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildKeyMap,
     buildCollectibleMap,
     buildCrateMap,
+    buildMusicKitMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
@@ -290,6 +310,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildKeyMap,
     buildCollectibleMap,
     buildCrateMap,
+    buildMusicKitMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
