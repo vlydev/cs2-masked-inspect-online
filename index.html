@@ -355,10 +355,12 @@
       _stickerCache:  null,  // Map<id, {name, image}> — stickers + patches combined
       _keychainCache: null,  // Map<id, {name, image}>
       _slabCache:     null,  // Map<def_index, {name, image}> — sticker slabs
+      _graffitiCache: null,  // Map<"def_index_color_index", {name, image}> — graffiti
       _skinLoading:     false,
       _stickerLoading:  false,
       _keychainLoading: false,
       _slabLoading:     false,
+      _graffitiLoading: false,
 
       _CACHE_TTL: 24 * 60 * 60 * 1000,  // 24 hours
 
@@ -393,6 +395,7 @@
             if (this.isStickerSlab()) this._loadSlabs();
             else                      this._loadKeychains();
           }
+          if (this.isDirectItem() && this.result.stickers?.length === 1) this._loadGraffiti();
 
           gtag('event', 'decode_success', {
             link_type:    InspectLink.isMasked(u) ? 'masked' : InspectLink.isClassic(u) ? 'classic' : 'hybrid',
@@ -457,6 +460,23 @@
         this._stickerLoading = false;
       },
 
+      async _loadGraffiti() {
+        if (this._graffitiCache || this._graffitiLoading) return;
+        this._graffitiLoading = true;
+        const cached = this._lsGet('cs2_graffiti_v1');
+        if (cached) { this._graffitiCache = cached; this._graffitiLoading = false; return; }
+        try {
+          const data = await fetch(CatalogUtils.CATALOG_URLS.graffiti).then(r => r.json());
+          const map = new Map();
+          data.forEach(item => {
+            map.set(`${item.def_index}_${item.color_index ?? 0}`, { name: item.name, image: item.image });
+          });
+          this._graffitiCache = map;
+          this._lsSet('cs2_graffiti_v1', map);
+        } catch { /* silently ignore */ }
+        this._graffitiLoading = false;
+      },
+
       async _loadSlabs() {
         if (this._slabCache || this._slabLoading) return;
         this._slabLoading = true;
@@ -516,6 +536,12 @@
         if (this.isStickerSlab()) return 'sticker slab';
         const kc = this.result.keychains ?? [];
         if (kc.length === 1) return 'keychain';
+        const st = this.result.stickers ?? [];
+        if (st.length === 1) {
+          const s = st[0];
+          const key = `${s.id ?? s.stickerId}_${s.tintId ?? 0}`;
+          if (this._graffitiCache?.has(key)) return 'graffiti';
+        }
         return 'sticker / patch';
       },
 
@@ -546,7 +572,10 @@
             return this._keychainCache ? (this.keychainInfo(k.id ?? k.stickerId) ?? null) : null;
           }
           const s = st[0];
-          return this._stickerCache ? (this.stickerInfo(s.id ?? s.stickerId) ?? null) : null;
+          const sid = s.id ?? s.stickerId;
+          const graffitiKey = `${sid}_${s.tintId ?? 0}`;
+          if (this._graffitiCache?.has(graffitiKey)) return this._graffitiCache.get(graffitiKey);
+          return this._stickerCache ? (this.stickerInfo(sid) ?? null) : null;
         }
         if (!this.result.paintIndex || !this._skinCache) return null;
         const sfx = this.result.quality === 9 ? 'st' : this.result.quality === 12 ? 'sv' : 'normal';
@@ -573,6 +602,11 @@
 
       slabInfo(paintKit) {
         return this._slabCache?.get(Number(paintKit)) ?? { name: paintKit != null ? '#' + paintKit : '—', image: null };
+      },
+
+      graffitiInfo(stickerId, tintId) {
+        const key = `${stickerId}_${tintId ?? 0}`;
+        return this._graffitiCache?.get(key) ?? null;
       },
 
       clear() {

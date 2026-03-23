@@ -11,6 +11,7 @@ const CATALOG_URLS = {
   patches:      'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/patches.json',
   keychains:    'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keychains.json',
   stickerSlabs: 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/sticker_slabs.json',
+  graffiti:     'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/graffiti.json',
 };
 
 // ---------------------------------------------------------------------------
@@ -109,6 +110,22 @@ function buildKeychainMap(keychains) {
 }
 
 /**
+ * Build graffiti lookup map.
+ * Key: "${def_index}_${color_index}" (color_index=0 for single-color graffiti)
+ * Value: { name, image }
+ * @param {Array} graffiti - parsed graffiti.json
+ * @returns {Map<string,{name:string,image:string}>}
+ */
+function buildGraffitiMap(graffiti) {
+  const map = new Map();
+  graffiti.forEach(item => {
+    const key = `${item.def_index}_${item.color_index ?? 0}`;
+    map.set(key, { name: item.name, image: item.image });
+  });
+  return map;
+}
+
+/**
  * Build sticker slab lookup map.
  * Key: numeric def_index (= paintKit in the decoded keychain)
  * Value: { name, image }
@@ -180,6 +197,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildStickerMap,
     buildKeychainMap,
     buildStickerSlabMap,
+    buildGraffitiMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
@@ -194,6 +212,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildStickerMap,
     buildKeychainMap,
     buildStickerSlabMap,
+    buildGraffitiMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
