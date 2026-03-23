@@ -386,10 +386,6 @@
           this.result  = InspectLink.deserialize(u);
           try { this.genCode = genCodeFromLink(u); }
           catch { this.genCode = toGenCode(this.result); }
-          if (this.isStickerSlab()) {
-            const paintKit = this.result.keychains[0].paintKit;
-            if (paintKit != null) this.genCode += ' ' + paintKit;
-          }
 
           if (this.result.paintIndex)        this._loadSkins();
           if (this.result.stickers?.length)  this._loadStickers();
