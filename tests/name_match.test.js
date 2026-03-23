@@ -25,6 +25,7 @@ const {
   buildStickerMap,
   buildKeychainMap,
   buildGraffitiMap,
+  buildAgentMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -37,19 +38,22 @@ let skinMap;     // Map<"wi_pi_suffix", baseName>
 let stickerMap;  // Map<id, name>
 let keychainMap; // Map<id, name>
 let graffitiMap; // Map<"def_index_color_index", {name, image}>
+let agentMap;    // Map<def_index, {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData, graffitiData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
     fetch(CATALOG_URLS.keychains).then(r => r.json()),
     fetch(CATALOG_URLS.graffiti).then(r => r.json()),
+    fetch(CATALOG_URLS.agents).then(r => r.json()),
   ]);
   skinMap     = buildSkinMap(skinsData);
   stickerMap  = buildStickerMap(stickersData, patchesData);
   keychainMap = buildKeychainMap(keychainsData);
   graffitiMap = buildGraffitiMap(graffitiData);
+  agentMap    = buildAgentMap(agentsData);
 });
 
 // ---------------------------------------------------------------------------
@@ -103,6 +107,20 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Agent test: decoded → agentMap.get(defIndex) → compare with expected name.
+ */
+function agentTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from agent catalog matches', () => {
+      const item = decoded(url);
+      const entry = agentMap.get(item.defIndex);
+      assert.ok(entry != null, `agent defIndex ${item.defIndex} not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -511,4 +529,27 @@ describe('Graffiti', () => {
     'steam://run/730//+csgo_econ_action_preview%206D7D6D75A9674D6D456C5D690F6A656D7DCA605D7C056D1D759887272D');
   graffitiTest('Sealed Graffiti | Death Sentence (Bazooka Pink)',
     'steam://run/730//+csgo_econ_action_preview%201505150DD01F35153D14251177121D1505B71825057D15650D16B253F3');
+});
+
+// ===========================================================================
+// Agent (defIndex maps directly to agents.json)
+// ===========================================================================
+
+describe('Agent', () => {
+  agentTest("'Two Times' McCoy | TACP Cavalry",
+    'steam://run/730//+csgo_econ_action_preview%203424A3B3B0918D352CFC1014341C3104305CB7B4B4B438442358B67732');
+  agentTest('Seal Team 6 Soldier | NSWC SEAL',
+    'steam://run/730//+csgo_econ_action_preview%20BBAB1F102A6B00BAA322919BBB93B88BBFD3383B3B3BB7CBACFF8DFCD7');
+  agentTest('The Elite Mr. Muhlik | Elite Crew',
+    'steam://run/730//+csgo_econ_action_preview%209E8E422A354C259F866AB9BE9EB698AE9AFC94969E8E4DBDBB098F17A1FC9B969F8E4DBDFC94969C8E4DBDBB5B7F1BA1F61D1E1E1E92EE8902636998');
+  agentTest('Elite Trapper Solman | Guerrilla Warfare',
+    'steam://run/730//+csgo_econ_action_preview%206E7EEBD3C587D46F76CB4B4E6E466B5E6A06EDEEEEEE621E79D1228976');
+  agentTest('Osiris | Elite Crew',
+    'steam://run/730//+csgo_econ_action_preview%206E7E8193B1AA09769C494E6E466A5E6A06EDEEEEEE621E79D3A851C8');
+  agentTest("'Two Times' McCoy | TACP Cavalry",
+    'steam://run/730//+csgo_econ_action_preview%209D8D5730541C1F9C8555B9BD9DB598AD99F593ED8AFA1EEB7B');
+  agentTest('Operator | FBI SWAT',
+    'steam://run/730//+csgo_econ_action_preview%205E4EA8FACBACEC5F46E7777E5E765D6E5A3C54565C4E8C7D7B9B0BD861364A2E4953ED5DA6');
+  agentTest('Seal Team 6 Soldier | NSWC SEAL',
+    'steam://run/730//+csgo_econ_action_preview%20A9B9057622041AA8B1308389A981AA99ADC1F0D9BE9D58D329');
 });
