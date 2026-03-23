@@ -337,7 +337,7 @@
 
 </main>
 
-<script src="https://github.com/vlydev/cs2-masked-inspect-js/releases/download/v1.1.1/cs2-masked-inspect.min.js"></script>
+<script src="https://github.com/vlydev/cs2-masked-inspect-js/releases/download/v1.1.2/cs2-masked-inspect.min.js"></script>
 <script src="catalog.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
 <script>
@@ -354,9 +354,11 @@
       _skinCache:     null,  // Map<"weaponId_paintIndex_st|sv|normal", {name, image}>
       _stickerCache:  null,  // Map<id, {name, image}> — stickers + patches combined
       _keychainCache: null,  // Map<id, {name, image}>
+      _slabCache:     null,  // Map<def_index, {name, image}> — sticker slabs
       _skinLoading:     false,
       _stickerLoading:  false,
       _keychainLoading: false,
+      _slabLoading:     false,
 
       _CACHE_TTL: 24 * 60 * 60 * 1000,  // 24 hours
 
@@ -387,7 +389,10 @@
 
           if (this.result.paintIndex)        this._loadSkins();
           if (this.result.stickers?.length)  this._loadStickers();
-          if (this.result.keychains?.length) this._loadKeychains();
+          if (this.result.keychains?.length) {
+            if (this.isStickerSlab()) this._loadSlabs();
+            else                      this._loadKeychains();
+          }
 
           gtag('event', 'decode_success', {
             link_type:    InspectLink.isMasked(u) ? 'masked' : InspectLink.isClassic(u) ? 'classic' : 'hybrid',
@@ -452,6 +457,23 @@
         this._stickerLoading = false;
       },
 
+      async _loadSlabs() {
+        if (this._slabCache || this._slabLoading) return;
+        this._slabLoading = true;
+        const cached = this._lsGet('cs2_slabs_v1');
+        if (cached) { this._slabCache = cached; this._slabLoading = false; return; }
+        try {
+          const data = await fetch(CatalogUtils.CATALOG_URLS.stickerSlabs).then(r => r.json());
+          const map = new Map();
+          data.forEach(item => {
+            if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
+          });
+          this._slabCache = map;
+          this._lsSet('cs2_slabs_v1', map);
+        } catch { /* silently ignore */ }
+        this._slabLoading = false;
+      },
+
       async _loadKeychains() {
         if (this._keychainCache || this._keychainLoading) return;
         this._keychainLoading = true;
@@ -510,7 +532,7 @@
           if (kc.length === 1) {
             const k = kc[0];
             if (this.isStickerSlab()) {
-              return this._stickerCache ? (this.stickerInfo(k.paintKit) ?? null) : null;
+              return this._slabCache ? (this.slabInfo(k.paintKit) ?? null) : null;
             }
             return this._keychainCache ? (this.keychainInfo(k.id ?? k.stickerId) ?? null) : null;
           }
@@ -538,6 +560,10 @@
 
       keychainInfo(id) {
         return this._keychainCache?.get(Number(id)) ?? { name: id != null ? '#' + id : '—', image: null };
+      },
+
+      slabInfo(paintKit) {
+        return this._slabCache?.get(Number(paintKit)) ?? { name: paintKit != null ? '#' + paintKit : '—', image: null };
       },
 
       clear() {

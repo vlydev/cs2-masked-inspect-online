@@ -6,10 +6,11 @@
 // ---------------------------------------------------------------------------
 
 const CATALOG_URLS = {
-  skins:     'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/skins_not_grouped.json',
-  stickers:  'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/stickers.json',
-  patches:   'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/patches.json',
-  keychains: 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keychains.json',
+  skins:        'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/skins_not_grouped.json',
+  stickers:     'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/stickers.json',
+  patches:      'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/patches.json',
+  keychains:    'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keychains.json',
+  stickerSlabs: 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/sticker_slabs.json',
 };
 
 // ---------------------------------------------------------------------------
@@ -108,6 +109,21 @@ function buildKeychainMap(keychains) {
 }
 
 /**
+ * Build sticker slab lookup map.
+ * Key: numeric def_index (= paintKit in the decoded keychain)
+ * Value: { name, image }
+ * @param {Array} slabs - parsed sticker_slabs.json
+ * @returns {Map<number,{name:string,image:string}>}
+ */
+function buildStickerSlabMap(slabs) {
+  const map = new Map();
+  slabs.forEach(item => {
+    if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
+  });
+  return map;
+}
+
+/**
  * Returns true if the decoded item is a Sticker Slab.
  * Sticker Slabs have keychains[0].stickerId === 37 with a non-null paintKit.
  * @param {{ keychains?: Array }} item
@@ -163,6 +179,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildSkinMap,
     buildStickerMap,
     buildKeychainMap,
+    buildStickerSlabMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
@@ -176,6 +193,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildSkinMap,
     buildStickerMap,
     buildKeychainMap,
+    buildStickerSlabMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
