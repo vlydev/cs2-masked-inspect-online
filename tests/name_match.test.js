@@ -27,6 +27,7 @@ const {
   buildGraffitiMap,
   buildAgentMap,
   buildKeyMap,
+  buildCollectibleMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -40,10 +41,11 @@ let stickerMap;  // Map<id, name>
 let keychainMap; // Map<id, name>
 let graffitiMap; // Map<"def_index_color_index", {name, image}>
 let agentMap;    // Map<def_index, {name, image}>
-let keyMap;      // Map<def_index, {name, image}>
+let keyMap;           // Map<def_index, {name, image}>
+let collectibleMap;   // Map<def_index, {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData, collectiblesData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
@@ -51,13 +53,15 @@ before(async () => {
     fetch(CATALOG_URLS.graffiti).then(r => r.json()),
     fetch(CATALOG_URLS.agents).then(r => r.json()),
     fetch(CATALOG_URLS.keys).then(r => r.json()),
+    fetch(CATALOG_URLS.collectibles).then(r => r.json()),
   ]);
-  skinMap     = buildSkinMap(skinsData);
-  stickerMap  = buildStickerMap(stickersData, patchesData);
-  keychainMap = buildKeychainMap(keychainsData);
-  graffitiMap = buildGraffitiMap(graffitiData);
-  agentMap    = buildAgentMap(agentsData);
-  keyMap      = buildKeyMap(keysData);
+  skinMap        = buildSkinMap(skinsData);
+  stickerMap     = buildStickerMap(stickersData, patchesData);
+  keychainMap    = buildKeychainMap(keychainsData);
+  graffitiMap    = buildGraffitiMap(graffitiData);
+  agentMap       = buildAgentMap(agentsData);
+  keyMap         = buildKeyMap(keysData);
+  collectibleMap = buildCollectibleMap(collectiblesData);
 });
 
 // ---------------------------------------------------------------------------
@@ -111,6 +115,20 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Collectible test: decoded → collectibleMap.get(defIndex) → compare with expected name.
+ */
+function collectibleTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from collectible catalog matches', () => {
+      const item = decoded(url);
+      const entry = collectibleMap.get(item.defIndex);
+      assert.ok(entry != null, `collectible defIndex ${item.defIndex} not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -587,4 +605,21 @@ describe('Key', () => {
     'steam://run/730//+csgo_econ_action_preview%20D5C5D5CD24DFF5D5FDD4E5D1BDD5A5D739E6EDA5');
   keyTest('Spectrum Case Key',
     'steam://run/730//+csgo_econ_action_preview%20CEDECED61AC4EECEE6CFFECAA6CEBECC50A90D60');
+});
+
+// ===========================================================================
+// Collectible (defIndex maps directly to collectibles.json)
+// ===========================================================================
+
+describe('Collectible', () => {
+  collectibleTest('Shanghai 2024 Viewer Pass',
+    'steam://run/730//+csgo_econ_action_preview%208999899154AFA989A188B98DE189F98B88188547');
+  collectibleTest('Austin 2025 Viewer Pass + 3 Souvenir Tokens',
+    'steam://run/730//+csgo_econ_action_preview%200414041CFF2324042C0534006C047406518AAE74');
+  collectibleTest('Austin 2025 Viewer Pass + 3 Souvenir Tokens',
+    'steam://run/730//+csgo_econ_action_preview%20ABBBABB3508C8BAB83AA9BAFC3ABDBA9E29BA505');
+  collectibleTest('Operation Riptide Premium Pass',
+    'steam://run/730//+csgo_econ_action_preview%20A6B6A6BE308386A68EA796A2CEA6D6A4EB8B6208');
+  collectibleTest('Operation Broken Fang Premium Pass',
+    'steam://run/730//+csgo_econ_action_preview%20ACBCACB477888CAC84AD9CA8C4ACDCAEA21F7BC2');
 });

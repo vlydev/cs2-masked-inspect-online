@@ -158,7 +158,7 @@
             <tr><th>rarity</th> <td x-html="rarityHtml(result.rarity)"></td></tr>
             <template x-if="resolvedItem()">
               <tr>
-                <th x-text="isDirectItem() ? directItemLabel() : (result.paintIndex ? 'skin' : (_keyCache?.has(result.defIndex) ? 'key' : _agentCache?.has(result.defIndex) ? 'agent' : 'item'))"></th>
+                <th x-text="isDirectItem() ? directItemLabel() : (result.paintIndex ? 'skin' : (_keyCache?.has(result.defIndex) ? 'key' : _collectibleCache?.has(result.defIndex) ? 'collectible' : _agentCache?.has(result.defIndex) ? 'agent' : 'item'))"></th>
                 <td>
                   <div class="item-cell">
                     <template x-if="resolvedItem().image">
@@ -357,14 +357,16 @@
       _slabCache:     null,  // Map<def_index, {name, image}> — sticker slabs
       _graffitiCache: null,  // Map<"def_index_color_index", {name, image}> — graffiti
       _agentCache:    null,  // Map<def_index, {name, image}> — agents
-      _keyCache:      null,  // Map<def_index, {name, image}> — keys
+      _keyCache:          null,  // Map<def_index, {name, image}> — keys
+      _collectibleCache:  null,  // Map<def_index, {name, image}> — collectibles
       _skinLoading:     false,
       _stickerLoading:  false,
       _keychainLoading: false,
       _slabLoading:     false,
       _graffitiLoading: false,
       _agentLoading:    false,
-      _keyLoading:      false,
+      _keyLoading:          false,
+      _collectibleLoading:  false,
 
       _CACHE_TTL: 24 * 60 * 60 * 1000,  // 24 hours
 
@@ -403,6 +405,7 @@
           if (!this.result.paintIndex && this.result.defIndex !== 49 && !this.isDirectItem()) {
             this._loadAgents();
             this._loadKeys();
+            this._loadCollectibles();
           }
 
           gtag('event', 'decode_success', {
@@ -554,6 +557,23 @@
         this._keyLoading = false;
       },
 
+      async _loadCollectibles() {
+        if (this._collectibleCache || this._collectibleLoading) return;
+        this._collectibleLoading = true;
+        const cached = this._lsGet('cs2_collectibles_v1');
+        if (cached) { this._collectibleCache = cached; this._collectibleLoading = false; return; }
+        try {
+          const data = await fetch(CatalogUtils.CATALOG_URLS.collectibles).then(r => r.json());
+          const map = new Map();
+          data.forEach(item => {
+            if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
+          });
+          this._collectibleCache = map;
+          this._lsSet('cs2_collectibles_v1', map);
+        } catch { /* silently ignore */ }
+        this._collectibleLoading = false;
+      },
+
       isDirectItem() {
         if (!this.result) return false;
         if (this.result.paintIndex || this.result.paintSeed) return false;
@@ -607,6 +627,10 @@
           if (this._keyCache) {
             const key = this._keyCache.get(this.result.defIndex);
             if (key) return key;
+          }
+          if (this._collectibleCache) {
+            const collectible = this._collectibleCache.get(this.result.defIndex);
+            if (collectible) return collectible;
           }
           if (this._agentCache) {
             const agent = this._agentCache.get(this.result.defIndex);
