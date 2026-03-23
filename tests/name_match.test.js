@@ -26,6 +26,7 @@ const {
   buildKeychainMap,
   buildGraffitiMap,
   buildAgentMap,
+  buildKeyMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -39,21 +40,24 @@ let stickerMap;  // Map<id, name>
 let keychainMap; // Map<id, name>
 let graffitiMap; // Map<"def_index_color_index", {name, image}>
 let agentMap;    // Map<def_index, {name, image}>
+let keyMap;      // Map<def_index, {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
     fetch(CATALOG_URLS.keychains).then(r => r.json()),
     fetch(CATALOG_URLS.graffiti).then(r => r.json()),
     fetch(CATALOG_URLS.agents).then(r => r.json()),
+    fetch(CATALOG_URLS.keys).then(r => r.json()),
   ]);
   skinMap     = buildSkinMap(skinsData);
   stickerMap  = buildStickerMap(stickersData, patchesData);
   keychainMap = buildKeychainMap(keychainsData);
   graffitiMap = buildGraffitiMap(graffitiData);
   agentMap    = buildAgentMap(agentsData);
+  keyMap      = buildKeyMap(keysData);
 });
 
 // ---------------------------------------------------------------------------
@@ -107,6 +111,20 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Key test: decoded → keyMap.get(defIndex) → compare with expected name.
+ */
+function keyTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from key catalog matches', () => {
+      const item = decoded(url);
+      const entry = keyMap.get(item.defIndex);
+      assert.ok(entry != null, `key defIndex ${item.defIndex} not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -552,4 +570,21 @@ describe('Agent', () => {
     'steam://run/730//+csgo_econ_action_preview%205E4EA8FACBACEC5F46E7777E5E765D6E5A3C54565C4E8C7D7B9B0BD861364A2E4953ED5DA6');
   agentTest('Seal Team 6 Soldier | NSWC SEAL',
     'steam://run/730//+csgo_econ_action_preview%20A9B9057622041AA8B1308389A981AA99ADC1F0D9BE9D58D329');
+});
+
+// ===========================================================================
+// Key (defIndex maps directly to keys.json)
+// ===========================================================================
+
+describe('Key', () => {
+  keyTest('Kilowatt Case Key',
+    'steam://run/730//+csgo_econ_action_preview%20D1C1D1C923DBF1D1F9D0E1D5B9D1A1D3534B86DF');
+  keyTest('Huntsman Case Key',
+    'steam://run/730//+csgo_econ_action_preview%200018990A28013004700285AE0A38');
+  keyTest('Glove Case Key',
+    'steam://run/730//+csgo_econ_action_preview%20A8B8A8B064A288A880A998ACC0A8D8AA21416D74');
+  keyTest('Revolution Case Key',
+    'steam://run/730//+csgo_econ_action_preview%20D5C5D5CD24DFF5D5FDD4E5D1BDD5A5D739E6EDA5');
+  keyTest('Spectrum Case Key',
+    'steam://run/730//+csgo_econ_action_preview%20CEDECED61AC4EECEE6CFFECAA6CEBECC50A90D60');
 });
