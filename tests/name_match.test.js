@@ -8,8 +8,8 @@
  *  2. Look up the resulting item in the ByMykel CSGO-API catalog
  *  3. Assert the resolved name matches the expected market_hash_name
  *
- * Note: Sticker Slabs cannot be uniquely identified from inspect data
- * (all share stickerId=37 in the keychain slot) — they are skipped.
+ * Note: Sticker Slabs are identified via proto field 12 (paintKit) inside the keychain
+ * Sticker sub-message, which maps to the sticker catalog ID.
  *
  * Requires network access (GitHub Actions has it by default).
  */
@@ -25,6 +25,7 @@ const {
   buildStickerMap,
   buildKeychainMap,
   lookupSkinName,
+  lookupStickerSlabName,
 } = require('../catalog');
 
 // ---------------------------------------------------------------------------
@@ -84,6 +85,19 @@ function stickerTest(expectedName, url) {
       const st = item.stickers?.length === 1 ? item.stickers[0] : null;
       assert.ok(st !== null, 'expected exactly one sticker');
       const name = stickerMap.get(st.stickerId);
+      assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Sticker Slab test: decoded → stickerMap.get(keychains[0].paintKit) → compare with expected name.
+ */
+function stickerSlabTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from sticker catalog matches via paintKit', () => {
+      const item = decoded(url);
+      const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
     });
   });
@@ -429,4 +443,24 @@ describe('Glock-18 | Gamma Doppler', () => {
     'steam://run/730//+csgo_econ_action_preview%20FBEB1A414C2843FAE3FFDB1AF3D3FDCBFFC3371F2D14F8BB10FF99FEF3FBEB10DD99FEF3FAEB10DD99FEF3F9EB10DD99F4F3F8EB32C8C6FB136F40BE1BC370C793787B7B7BF78BEC06102CAD');
   weaponTest('Glock-18 | Gamma Doppler (Phase 4) (Well-Worn)',
     'steam://run/730//+csgo_econ_action_preview%20FAEA364B474340FBE2FEDA19F2D2FCCAFEC21426340CF9BA09FF98F0F2F9EA5ED4E7FAFA7AC592797A7A7AF68AEDA15DDA7E');
+});
+
+// ===========================================================================
+// Sticker Slab (defIndex 1355, quality 8)
+// Identified via keychains[0].paintKit → sticker catalog ID
+// ===========================================================================
+
+describe('Sticker Slab', () => {
+  stickerSlabTest('Sticker | The Mongolz (Gold) | Budapest 2025',
+    'steam://run/730//+csgo_econ_action_preview%20C8D8C8D003C2E8C8E0CEF8C0A0C8B8C86AC9CFC0C8D8EDA8688287E4A630');
+  stickerSlabTest('Sticker | FaZe Clan (Holo) | Budapest 2025',
+    'steam://run/730//+csgo_econ_action_preview%20F9E9F9E132F3D9F9D1FCC9F191F989F95BF8FEF1F9E9DC992EB38B9209A9');
+  stickerSlabTest('Sticker | mousesports | Cluj-Napoca 2015',
+    'steam://run/730//+csgo_econ_action_preview%20819181994A8BA181A982B189E981F181238086898191A4E1208698F309C9');
+  stickerSlabTest('Sticker | StarLadder (Holo) | Budapest 2025',
+    'steam://run/730//+csgo_econ_action_preview%20BBABBBA370B19BBB93BE8BB3D3BBCBBB19BABCB3BBAB9EDB28F0677E5CA3');
+  stickerSlabTest('Sticker | donk (Foil) | Austin 2025',
+    'steam://run/730//+csgo_econ_action_preview%2008180810C3022808200C380060087808AA090F0008182D68C84C11288898');
+  stickerSlabTest('Sticker | Supreme Master First Class (Holo)',
+    'steam://run/730//+csgo_econ_action_preview%205A4A5A4291507A5A725E6A52325A2A5AF85B5D525A4A7F3AA540C22C8A12');
 });

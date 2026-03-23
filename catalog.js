@@ -108,6 +108,30 @@ function buildKeychainMap(keychains) {
 }
 
 /**
+ * Returns true if the decoded item is a Sticker Slab.
+ * Sticker Slabs have keychains[0].stickerId === 37 with a non-null paintKit.
+ * @param {{ keychains?: Array }} item
+ * @returns {boolean}
+ */
+function isStickerSlab(item) {
+  const kc = item.keychains ?? [];
+  return kc.length === 1 && kc[0].stickerId === 37 && kc[0].paintKit != null;
+}
+
+/**
+ * Look up Sticker Slab market name from decoded item.
+ * Uses paintKit (proto field 12 in the keychain Sticker sub-message) as the sticker catalog ID.
+ * Returns null if the item is not a Sticker Slab or the paintKit is not in the sticker catalog.
+ * @param {Map} stickerMap
+ * @param {{ keychains?: Array }} item
+ * @returns {string|null}
+ */
+function lookupStickerSlabName(stickerMap, item) {
+  if (!isStickerSlab(item)) return null;
+  return stickerMap.get(item.keychains[0].paintKit) ?? null;
+}
+
+/**
  * Look up skin market name from decoded item properties.
  * Returns full name including wear suffix, or null if not found.
  * @param {Map} skinMap
@@ -140,6 +164,8 @@ if (typeof module !== 'undefined' && module.exports) {
     buildStickerMap,
     buildKeychainMap,
     lookupSkinName,
+    isStickerSlab,
+    lookupStickerSlabName,
   };
 } else {
   // Browser global
@@ -151,5 +177,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildStickerMap,
     buildKeychainMap,
     lookupSkinName,
+    isStickerSlab,
+    lookupStickerSlabName,
   };
 }

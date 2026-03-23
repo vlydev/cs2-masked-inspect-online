@@ -478,22 +478,27 @@
         return st.length === 1 || kc.length === 1;
       },
 
+      isStickerSlab() {
+        if (!this.result) return false;
+        const kc = this.result.keychains ?? [];
+        return kc.length === 1 && (kc[0].stickerId ?? kc[0].id) === 37 && kc[0].paintKit != null;
+      },
+
       directItemLabel() {
-        const st = this.result.stickers  ?? [];
+        if (this.isStickerSlab()) return 'sticker slab';
         const kc = this.result.keychains ?? [];
         if (kc.length === 1) return 'keychain';
-        // distinguish sticker vs patch by checking the cache
-        const s  = st[0];
-        const id = Number(s.id ?? s.stickerId);
-        // patches have ids in patches.json — they're already merged in stickerCache,
-        // but we can't distinguish at runtime without extra metadata, so fall back to 'sticker/patch'
         return 'sticker / patch';
       },
 
       directItemId() {
         const st = this.result.stickers  ?? [];
         const kc = this.result.keychains ?? [];
-        const item = kc.length === 1 ? kc[0] : st[0];
+        if (kc.length === 1) {
+          const k = kc[0];
+          return this.isStickerSlab() ? k.paintKit : (k.id ?? k.stickerId ?? '—');
+        }
+        const item = st[0];
         return item?.id ?? item?.stickerId ?? '—';
       },
 
@@ -504,6 +509,9 @@
           const kc = this.result.keychains ?? [];
           if (kc.length === 1) {
             const k = kc[0];
+            if (this.isStickerSlab()) {
+              return this._stickerCache ? (this.stickerInfo(k.paintKit) ?? null) : null;
+            }
             return this._keychainCache ? (this.keychainInfo(k.id ?? k.stickerId) ?? null) : null;
           }
           const s = st[0];
