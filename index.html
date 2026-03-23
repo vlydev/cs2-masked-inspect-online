@@ -158,7 +158,7 @@
             <tr><th>rarity</th> <td x-html="rarityHtml(result.rarity)"></td></tr>
             <template x-if="resolvedItem()">
               <tr>
-                <th x-text="isDirectItem() ? directItemLabel() : 'skin'"></th>
+                <th x-text="isDirectItem() ? directItemLabel() : (result.paintIndex ? 'skin' : 'item')"></th>
                 <td>
                   <div class="item-cell">
                     <template x-if="resolvedItem().image">
@@ -532,6 +532,9 @@
 
       resolvedItem() {
         if (!this.result) return null;
+        if (this.result.defIndex === 49 && !this.result.paintIndex) {
+          return { name: 'C4 Explosive', image: null };
+        }
         if (this.isDirectItem()) {
           const st = this.result.stickers  ?? [];
           const kc = this.result.keychains ?? [];
