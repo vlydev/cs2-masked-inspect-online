@@ -88,6 +88,13 @@
     .input-row input { flex: 1; margin: 0; font-size: .85rem; }
     .input-row button { margin: 0; padding: .5rem 1rem; font-size: .85rem; width: auto; }
 
+    .examples-block { display: flex; align-items: center; gap: .6rem; margin: .9rem 0; padding: .4rem .7rem; border: 1px solid var(--pico-muted-border-color); border-radius: .4rem; background: color-mix(in srgb, var(--pico-muted-border-color) 20%, transparent); }
+    .examples-label { font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--pico-muted-color); white-space: nowrap; }
+    .examples { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .examples button { font-size: .72rem; padding: .15rem .5rem; border-radius: .2rem; border: 1px solid var(--pico-muted-border-color); background: transparent; color: var(--pico-muted-color); cursor: pointer; line-height: 1.4; transition: border-color .1s, color .1s; }
+    .examples button:hover { border-color: var(--pico-primary); color: var(--pico-primary); }
+    .examples button.active { border-color: var(--pico-primary); color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 8%, transparent); }
+
     footer { font-size: .8rem; margin-top: 2rem; }
     [x-cloak] { display: none !important; }
   </style>
@@ -145,6 +152,20 @@
   <small x-show="!error && !result" style="color:var(--pico-muted-color)">
     Supports masked, hybrid, and steam:// inspect links. Paste to auto-decode.
   </small>
+
+  <!-- Examples -->
+  <div class="examples-block">
+    <div class="examples-label">Examples</div>
+    <div class="examples">
+      <template x-for="ex in examples" :key="ex.url">
+        <button
+          :class="{ active: activeExampleUrl === ex.url }"
+          @click="loadExample(ex.url)"
+          x-text="ex.label"
+        ></button>
+      </template>
+    </div>
+  </div>
 
   <!-- Error -->
   <article x-show="error" x-text="error" style="color:var(--pico-del-color);margin-top:.75rem"></article>
@@ -390,6 +411,27 @@
       genCode: '',
       error:   '',
       imgPopup: { url: null, alt: '', x: 0, y: 0 },
+      examples: [
+        { label: 'Knife',        url: 'steam://run/730//+csgo_econ_action_preview%20ACBC2046643817ADB425A88C36AF84AA9CAF945E1C085AAFEC0DAEC42F2C2C2CA0DCA46D1E89BE' },
+        { label: 'Machine Gun',  url: 'steam://run/730//+csgo_econ_action_preview%201B0BFBF8CECFAD1A03153BEB18331F2B1F23B297DCEE185B831973989B9B9B176B1F922BEB1B' },
+        { label: 'Pistol',       url: 'steam://run/730//+csgo_econ_action_preview%20584893EBBCD1E359404678DF51705B685160C3EEF3A25B18AC5E1058085830DBD8D8D8542850DA35FA7C' },
+        { label: 'Rifle',        url: 'steam://run/730//+csgo_econ_action_preview%20FAEA5A2E11524DFBE2FDDA3EFCD2F9CAFEC2221B5408F9BA34F892797A7A7AF68AF235BA11FA' },
+        { label: 'SMG',          url: 'steam://run/730//+csgo_econ_action_preview%20C3D31C5B2E0C78C2DBDBE340C2EBC6F3CAFB5F107733C08309C28BC393C3AB40434343CFB3CB440B9673' },
+        { label: 'Shotgun',      url: 'steam://run/730//+csgo_econ_action_preview%20C7D741347E3956C6DFDCE706C0EFC3F7C3FF49057137C48755C1AF01C5B7CF551CB517' },
+        { label: 'Sniper Rifle', url: 'steam://run/730//+csgo_econ_action_preview%2080906111076C378198A6A00684A883B089B85D6A7B7283C02381C880D080E8030000008CF08867D33DD8' },
+        { label: 'Gloves',       url: 'steam://run/730//+csgo_econ_action_preview%204858B1B5A990FC4950EE6F68EB06604E784B70F4DBF8B24B08864C20CBC8C8C8443840385EA617' },
+        { label: 'Sticker',      url: 'steam://run/730//+csgo_econ_action_preview%2069796971D0604969416A596D0B6C616979B42B01691961BB75B8C2' },
+        { label: 'Sticker Slab', url: 'steam://run/730//+csgo_econ_action_preview%209C8C9C845796BC9CB49FAC94F49CEC9C3E9D9B949C8CB9FC5D9D1E76474C' },
+        { label: 'Patch',        url: 'steam://run/730//+csgo_econ_action_preview%20EFFFEFF76ECBCFEFC7EBDFEB8DEAE7EFFF07C887EF9FE764C20FBB' },
+        { label: 'Charm',        url: 'steam://run/730//+csgo_econ_action_preview%202737C1A38FE59C263FEC2D07270F2417234FA4A7A7A72B573085262F2F2737077781CA255D2D3605' },
+        { label: 'Graffiti',     url: 'steam://run/730//+csgo_econ_action_preview%20CDDDCDD509C7EDCDE5CCFDC9AFCAC5CDDD64C0FDC4A5CDBDD578C9D043' },
+        { label: 'Agent',        url: 'steam://run/730//+csgo_econ_action_preview%201D0D979084B2A61C05A1343D1D351B2D19759E9D9D9D116D0AE3B89C98' },
+        { label: 'Weapon Case',  url: 'steam://run/730//+csgo_econ_action_preview%209A8A3E3F234A219B8219B2BA9AB29BAA97F2191A1A1A96EA98DAF31F48' },
+        { label: 'Music Kit',    url: 'steam://run/730//+csgo_econ_action_preview%208494849C268EA484AC87B480EC84F4860C85C12A869B4D' },
+        { label: 'Ticket',       url: 'steam://run/730//+csgo_econ_action_preview%208999899154AFA989A188B98DE189F98B88188547' },
+        { label: 'Collectible',  url: 'steam://run/730//+csgo_econ_action_preview%209C8C2555081CA684569BBC9CB49AAC98F498EC9C5AEE15B8' },
+      ],
+      activeExampleUrl: null,
 
       _skinCache:     null,  // Map<"weaponId_paintIndex_st|sv|normal", {name, image}>
       _stickerCache:  null,  // Map<id, {name, image}> — stickers + patches combined
@@ -814,6 +856,12 @@
 
       hideImgPopup() {
         this.imgPopup = { url: null, alt: '', x: 0, y: 0 };
+      },
+
+      loadExample(url) {
+        this.activeExampleUrl = url;
+        this.url = url;
+        this.$nextTick(() => this.decode());
       },
 
       linkTypeBadge() {
