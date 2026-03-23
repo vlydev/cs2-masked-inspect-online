@@ -28,6 +28,7 @@ const {
   buildAgentMap,
   buildKeyMap,
   buildCollectibleMap,
+  buildCrateMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -43,9 +44,10 @@ let graffitiMap; // Map<"def_index_color_index", {name, image}>
 let agentMap;    // Map<def_index, {name, image}>
 let keyMap;           // Map<def_index, {name, image}>
 let collectibleMap;   // Map<def_index, {name, image}>
+let crateMap;         // Map<def_index, {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData, collectiblesData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData, agentsData, keysData, collectiblesData, cratesData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
@@ -54,6 +56,7 @@ before(async () => {
     fetch(CATALOG_URLS.agents).then(r => r.json()),
     fetch(CATALOG_URLS.keys).then(r => r.json()),
     fetch(CATALOG_URLS.collectibles).then(r => r.json()),
+    fetch(CATALOG_URLS.crates).then(r => r.json()),
   ]);
   skinMap        = buildSkinMap(skinsData);
   stickerMap     = buildStickerMap(stickersData, patchesData);
@@ -62,6 +65,7 @@ before(async () => {
   agentMap       = buildAgentMap(agentsData);
   keyMap         = buildKeyMap(keysData);
   collectibleMap = buildCollectibleMap(collectiblesData);
+  crateMap       = buildCrateMap(cratesData);
 });
 
 // ---------------------------------------------------------------------------
@@ -115,6 +119,20 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Crate test: decoded → crateMap.get(defIndex) → compare with expected name.
+ */
+function crateTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from crate catalog matches', () => {
+      const item = decoded(url);
+      const entry = crateMap.get(item.defIndex);
+      assert.ok(entry != null, `crate defIndex ${item.defIndex} not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -622,4 +640,23 @@ describe('Collectible', () => {
     'steam://run/730//+csgo_econ_action_preview%20A6B6A6BE308386A68EA796A2CEA6D6A4EB8B6208');
   collectibleTest('Operation Broken Fang Premium Pass',
     'steam://run/730//+csgo_econ_action_preview%20ACBCACB477888CAC84AD9CA8C4ACDCAEA21F7BC2');
+});
+
+// ===========================================================================
+// Crate / Souvenir Package (defIndex maps directly to crates.json)
+// ===========================================================================
+
+describe('Crate', () => {
+  crateTest('Budapest 2025 Overpass Souvenir Highlight Package',
+    'steam://run/730//+csgo_econ_action_preview%20C6D6081D385E71C7DE23EEE6C6EEC7F6C2AE45464646CAB6C4AD0A9CD7');
+  crateTest('Paris 2023 Inferno Souvenir Package',
+    'steam://run/730//+csgo_econ_action_preview%2082922F70177837839A1FA4A282AA83B286EA010202028EF297A749C49F');
+  crateTest('Paris 2023 Overpass Souvenir Package',
+    'steam://run/730//+csgo_econ_action_preview%205F4FA3FEC0D2E85E47FF797F5F775E6F5B37E55E2F4A230ACD67');
+  crateTest('Katowice 2019 Train Souvenir Package',
+    'steam://run/730//+csgo_econ_action_preview%2028389488F8871230DB0B08280029182C408A2A583DEC4C8009');
+  crateTest('Paris 2023 Anubis Souvenir Package',
+    'steam://run/730//+csgo_econ_action_preview%20B3A31D7F5C1F07B2AB2C9593B39BB283B7DBB2C3A6B61CEECF');
+  crateTest('Stockholm 2021 Nuke Souvenir Package',
+    'steam://run/730//+csgo_econ_action_preview%20F4E45055244E4FF5EC3AD1D4F4DCF5C4F09C77747474F884E1404A4A5B');
 });

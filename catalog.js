@@ -15,6 +15,7 @@ const CATALOG_URLS = {
   agents:       'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/agents.json',
   keys:         'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/keys.json',
   collectibles: 'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/collectibles.json',
+  crates:       'https://raw.githubusercontent.com/ByMykel/CSGO-API/refs/heads/main/public/api/en/crates.json',
 };
 
 // ---------------------------------------------------------------------------
@@ -124,6 +125,21 @@ function buildGraffitiMap(graffiti) {
   graffiti.forEach(item => {
     const key = `${item.def_index}_${item.color_index ?? 0}`;
     map.set(key, { name: item.name, image: item.image });
+  });
+  return map;
+}
+
+/**
+ * Build crate lookup map.
+ * Key: numeric def_index
+ * Value: { name, image }
+ * @param {Array} crates - parsed crates.json
+ * @returns {Map<number,{name:string,image:string}>}
+ */
+function buildCrateMap(crates) {
+  const map = new Map();
+  crates.forEach(item => {
+    if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
   });
   return map;
 }
@@ -249,6 +265,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildAgentMap,
     buildKeyMap,
     buildCollectibleMap,
+    buildCrateMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
@@ -267,6 +284,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildAgentMap,
     buildKeyMap,
     buildCollectibleMap,
+    buildCrateMap,
     lookupSkinName,
     isStickerSlab,
     lookupStickerSlabName,
