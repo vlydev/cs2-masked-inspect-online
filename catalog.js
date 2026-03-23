@@ -139,7 +139,12 @@ function buildGraffitiMap(graffiti) {
 function buildCrateMap(crates) {
   const map = new Map();
   crates.forEach(item => {
-    if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
+    if (item.def_index != null) map.set(Number(item.def_index), {
+      name:          item.name,
+      image:         item.image,
+      contains:      (item.contains      ?? []).map(c => ({ name: c.name, image: c.image })),
+      contains_rare: (item.contains_rare ?? []).map(c => ({ name: c.name, image: c.image })),
+    });
   });
   return map;
 }

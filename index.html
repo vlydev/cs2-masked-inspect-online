@@ -54,6 +54,10 @@
     /* sticker/keychain cell */
     .item-cell { display: flex; align-items: center; gap: .6rem; }
     .item-cell img { width: 40px; height: 40px; object-fit: contain; border-radius: 3px; flex-shrink: 0; background: var(--pico-card-background-color); cursor: zoom-in; }
+    .crate-items { display: flex; flex-wrap: wrap; gap: .4rem; max-height: 220px; overflow-y: auto; }
+    .crate-items .ci { text-align: center; width: 48px; }
+    .crate-items .ci img { width: 40px; height: 40px; object-fit: contain; cursor: zoom-in; background: var(--pico-card-background-color); border-radius: 3px; display: block; margin: 0 auto; }
+    .crate-items .ci .ci-name { font-size: .6rem; color: var(--pico-muted-color); line-height: 1.2; margin-top: .15rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
     /* image hover popup */
     .img-popup {
@@ -178,6 +182,40 @@
                       </div>
                       <div class="item-id" x-text="isDirectItem() ? '#' + directItemId() : 'paintIndex #' + result.paintIndex"></div>
                     </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <template x-if="resolvedItem()?.contains?.length">
+              <tr>
+                <th>contains</th>
+                <td>
+                  <div class="crate-items">
+                    <template x-for="(ci, i) in resolvedItem().contains" :key="i">
+                      <div class="ci">
+                        <img :src="ci.image" :alt="ci.name" loading="lazy"
+                             @mouseenter="showImgPopup($event, ci)"
+                             @mouseleave="hideImgPopup()" />
+                        <div class="ci-name" x-text="ci.name"></div>
+                      </div>
+                    </template>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <template x-if="resolvedItem()?.contains_rare?.length">
+              <tr>
+                <th>contains_rare</th>
+                <td>
+                  <div class="crate-items">
+                    <template x-for="(ci, i) in resolvedItem().contains_rare" :key="i">
+                      <div class="ci">
+                        <img :src="ci.image" :alt="ci.name" loading="lazy"
+                             @mouseenter="showImgPopup($event, ci)"
+                             @mouseleave="hideImgPopup()" />
+                        <div class="ci-name" x-text="ci.name"></div>
+                      </div>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -580,16 +618,21 @@
       async _loadCrates() {
         if (this._crateCache || this._crateLoading) return;
         this._crateLoading = true;
-        const cached = this._lsGet('cs2_crates_v1');
+        const cached = this._lsGet('cs2_crates_v2');
         if (cached) { this._crateCache = cached; this._crateLoading = false; return; }
         try {
           const data = await fetch(CatalogUtils.CATALOG_URLS.crates).then(r => r.json());
           const map = new Map();
           data.forEach(item => {
-            if (item.def_index != null) map.set(Number(item.def_index), { name: item.name, image: item.image });
+            if (item.def_index != null) map.set(Number(item.def_index), {
+              name:          item.name,
+              image:         item.image,
+              contains:      (item.contains      ?? []).map(c => ({ name: c.name, image: c.image })),
+              contains_rare: (item.contains_rare ?? []).map(c => ({ name: c.name, image: c.image })),
+            });
           });
           this._crateCache = map;
-          this._lsSet('cs2_crates_v1', map);
+          this._lsSet('cs2_crates_v2', map);
         } catch { /* silently ignore */ }
         this._crateLoading = false;
       },
