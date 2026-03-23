@@ -24,6 +24,7 @@ const {
   buildSkinMap,
   buildStickerMap,
   buildKeychainMap,
+  buildGraffitiMap,
   lookupSkinName,
   lookupStickerSlabName,
 } = require('../catalog');
@@ -35,17 +36,20 @@ const {
 let skinMap;     // Map<"wi_pi_suffix", baseName>
 let stickerMap;  // Map<id, name>
 let keychainMap; // Map<id, name>
+let graffitiMap; // Map<"def_index_color_index", {name, image}>
 
 before(async () => {
-  const [skinsData, stickersData, patchesData, keychainsData] = await Promise.all([
+  const [skinsData, stickersData, patchesData, keychainsData, graffitiData] = await Promise.all([
     fetch(CATALOG_URLS.skins).then(r => r.json()),
     fetch(CATALOG_URLS.stickers).then(r => r.json()),
     fetch(CATALOG_URLS.patches).then(r => r.json()),
     fetch(CATALOG_URLS.keychains).then(r => r.json()),
+    fetch(CATALOG_URLS.graffiti).then(r => r.json()),
   ]);
   skinMap     = buildSkinMap(skinsData);
   stickerMap  = buildStickerMap(stickersData, patchesData);
   keychainMap = buildKeychainMap(keychainsData);
+  graffitiMap = buildGraffitiMap(graffitiData);
 });
 
 // ---------------------------------------------------------------------------
@@ -99,6 +103,23 @@ function stickerSlabTest(expectedName, url) {
       const item = decoded(url);
       const name = lookupStickerSlabName(stickerMap, item);
       assert.equal(name, expectedName);
+    });
+  });
+}
+
+/**
+ * Graffiti test: decoded → graffitiMap.get(`${stickerId}_${tintId ?? 0}`) → compare with expected name.
+ */
+function graffitiTest(expectedName, url) {
+  describe(expectedName, () => {
+    test('name from graffiti catalog matches', () => {
+      const item = decoded(url);
+      const st = item.stickers?.length === 1 ? item.stickers[0] : null;
+      assert.ok(st !== null, 'expected exactly one sticker entry');
+      const key = `${st.stickerId}_${st.tintId ?? 0}`;
+      const entry = graffitiMap.get(key);
+      assert.ok(entry != null, `graffiti key "${key}" not found in catalog`);
+      assert.equal(entry.name, expectedName);
     });
   });
 }
@@ -463,4 +484,31 @@ describe('Sticker Slab', () => {
     'steam://run/730//+csgo_econ_action_preview%2008180810C3022808200C380060087808AA090F0008182D68C84C11288898');
   stickerSlabTest('Sticker | Supreme Master First Class (Holo)',
     'steam://run/730//+csgo_econ_action_preview%205A4A5A4291507A5A725E6A52325A2A5AF85B5D525A4A7F3AA540C22C8A12');
+});
+
+// ===========================================================================
+// Graffiti (stickers[0].stickerId = def_index, stickers[0].tintId = color_index)
+// ===========================================================================
+
+describe('Graffiti', () => {
+  graffitiTest('Sealed Graffiti | Mr. Teeth (War Pig Pink)',
+    'steam://run/730//+csgo_econ_action_preview%20F1E1F1E934FBD1F1D9F0C1F593F6F9F1E15AFCC1E399F181E93306C5A1');
+  graffitiTest('Sealed Graffiti | Tilt (Cash Green)',
+    'steam://run/730//+csgo_econ_action_preview%203727372FF33D17371F36073355303F37279F3A073D5F37472F54EC7E05');
+  graffitiTest('Sealed Graffiti | Heart (Monster Purple)',
+    'steam://run/730//+csgo_econ_action_preview%209B8B9B835E91BB9BB39AAB9FF99C939B8B2396AB94F39BEB83E69CD41F');
+  graffitiTest('Sealed Graffiti | Double (War Pig Pink)',
+    'steam://run/730//+csgo_econ_action_preview%201707170FD31D37173F16271375101F1707B11A27057F17670F8AB8EED0');
+  graffitiTest('Sealed Graffiti | 200 IQ (Brick Red)',
+    'steam://run/730//+csgo_econ_action_preview%20D4C4D4CC11DEF4D4FCD5E4D0B6D3DCD4C444CBE4D5BCD4A4C38FC9D232');
+  graffitiTest('Sealed Graffiti | Eco (Tracer Yellow)',
+    'steam://run/730//+csgo_econ_action_preview%20D5C5D5CD11DFF5D5FDD4E5D1B7D2DDD5C572D8E5D3BDD5A5CDB2E310D1');
+  graffitiTest('Sealed Graffiti | Take Flight (Desert Amber)',
+    'steam://run/730//+csgo_econ_action_preview%201B0B1B03DF113B1B331A2B1F791C131B0BD3162B1E731B6B038591C5A3');
+  graffitiTest('Sealed Graffiti | Ninja (Frog Green)',
+    'steam://run/730//+csgo_econ_action_preview%20E5F5E5FD21EFC5E5CDE4D5E187E2EDE5F549E8D5EC8DE595FD2A8CBC2C');
+  graffitiTest('Sealed Graffiti | Eco (Princess Pink)',
+    'steam://run/730//+csgo_econ_action_preview%206D7D6D75A9674D6D456C5D690F6A656D7DCA605D7C056D1D759887272D');
+  graffitiTest('Sealed Graffiti | Death Sentence (Bazooka Pink)',
+    'steam://run/730//+csgo_econ_action_preview%201505150DD01F35153D14251177121D1505B71825057D15650D16B253F3');
 });
