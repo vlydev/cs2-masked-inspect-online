@@ -5,6 +5,6 @@
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
-    "@vlydev/cs2-masked-inspect": "^1.1.2"
+    "@vlydev/cs2-masked-inspect": "^1.1.4"
   }
 }
